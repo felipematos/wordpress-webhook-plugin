@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.5.12
+ * Version: 1.5.13
  */
 
 class Webhook_Handler {
@@ -285,21 +285,40 @@ class Webhook_Handler {
     public function start_test_mode() {
         set_transient('webhook_test_mode', true, 3600);
         delete_transient('webhook_test_data'); // Clear previous test data
-        wp_send_json_success(['message' => 'Test mode activated']);
+        wp_send_json_success([
+            'message' => 'Test mode activated',
+            'test_active' => true
+        ]);
     }
 
     public function stop_test_mode() {
         delete_transient('webhook_test_mode');
         delete_transient('webhook_test_data');
-        wp_send_json_success();
+        wp_send_json_success([
+            'message' => 'Test mode deactivated',
+            'test_active' => false
+        ]);
     }
 
     public function get_test_results() {
+        if (!get_transient('webhook_test_mode')) {
+            wp_send_json_success(['test_active' => false]);
+            return;
+        }
+
         $data = get_transient('webhook_test_data');
         if(!$data) {
-            wp_send_json_error(['message' => 'No test requests received yet'], 404);
+            wp_send_json_success([
+                'test_active' => true,
+                'message' => 'Waiting for requests...'
+            ]);
+            return;
         }
-        wp_send_json_success($data);
+
+        wp_send_json_success([
+            'test_active' => true,
+            'results' => $data
+        ]);
     }
 
     public function clear_logs() {
@@ -367,6 +386,8 @@ class Webhook_Handler {
             }
 
             $response_data = $this->process_request($request);
+            $status_code = is_wp_error($response_data) ? $response_data->get_error_data()['status'] : 200;
+            $response_json = is_wp_error($response_data) ? $response_data->get_error_message() : $response_data;
 
             $log_data = [
                 'time' => current_time('mysql'),
@@ -376,8 +397,8 @@ class Webhook_Handler {
                 'params' => json_encode($request->get_params(), JSON_FORCE_OBJECT),
                 'files' => json_encode($request->get_file_params()),
                 'ip' => $_SERVER['REMOTE_ADDR'],
-                'status_code' => is_wp_error($response_data) ? $response_data->get_error_data()['status'] : 200,
-                'response' => json_encode(is_wp_error($response_data) ? $response_data->get_error_message() : $response_data)
+                'status_code' => $status_code,
+                'response' => json_encode($response_json)
             ];
 
             $log_result = $wpdb->insert(
@@ -390,7 +411,9 @@ class Webhook_Handler {
                 error_log('Webhook Logging Failed: ' . $wpdb->last_error);
             }
 
-            return $this->format_response($response_data);
+            $response = new WP_REST_Response($response_json, $status_code);
+            $response->header('Content-Type', 'application/json; charset=utf-8');
+            return $response;
 
         } catch (Exception $e) {
             error_log('Webhook Critical Error: ' . $e->getMessage());

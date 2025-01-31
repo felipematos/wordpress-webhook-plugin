@@ -1,51 +1,39 @@
 jQuery(document).ready(function($) {
+    let logsRefreshInterval = null;
+    
     // Toggle log details
-    $('#webhook-logs').on('click', '.log-toggle', function(e) {
+    $(document).on('click', '.log-toggle', function(e) {
         e.preventDefault();
-        $(this).closest('.log-card').toggleClass('expanded');
-    });
-
-    // Pagination
-    $('.log-pagination button').click(function() {
-        const page = $(this).data('page');
-        $.post(ajaxurl, {
-            action: 'get_webhook_logs',
-            page: page,
-            security: webhookLogs.nonce
-        }, function(response) {
-            $('#webhook-logs').html(response.html);
-            $('.current-page').text(response.page);
-        });
-    });
-
-    // Reset logs
-    $('#resetLogs').click(function() {
-        if(confirm('Are you sure you want to delete all logs?')) {
-            $.post(ajaxurl, {
-                action: 'reset_webhook_logs',
-                security: webhookLogs.nonce
-            }, function() {
-                $('#webhook-logs').empty();
-            });
-        }
+        const $card = $(this).closest('.log-card');
+        $card.toggleClass('expanded');
+        $(this).text($card.hasClass('expanded') ? 'Hide' : 'Details');
     });
 
     // Fetch logs function
     function fetchLogs(page) {
+        const $container = $('#webhookLogsContainer');
+        const $refreshBtn = $('#refreshLogs');
+        const $spinner = $('<span class="spinner is-active" style="float: none; margin-left: 4px;"></span>');
+        
+        $refreshBtn.prop('disabled', true).after($spinner);
+        
         $.post(ajaxurl, {
             action: 'get_logs',
             security: webhookLogs.nonce,
             page: page || 1
         }, function(response) {
             if(response.success) {
-                $('#webhookLogsContainer').html(response.data.html);
+                $container.html(response.data.html);
             } else {
                 console.error('Error loading logs:', response.data);
-                $('#webhookLogsContainer').html('<div class="notice notice-error">Error loading logs</div>');
+                $container.html('<div class="notice notice-error">Error loading logs</div>');
             }
         }).fail(function(xhr) {
             console.error('Log request failed:', xhr.responseText);
-            $('#webhookLogsContainer').html('<div class="notice notice-error">Request failed: ' + xhr.statusText + '</div>');
+            $container.html('<div class="notice notice-error">Request failed: ' + xhr.statusText + '</div>');
+        }).always(function() {
+            $refreshBtn.prop('disabled', false);
+            $spinner.remove();
         });
     }
 
@@ -66,8 +54,22 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Initial load
+    // Initial load and setup auto-refresh
     fetchLogs(1);
+    
+    // Setup auto-refresh for logs
+    function startLogsAutoRefresh() {
+        if (logsRefreshInterval) {
+            clearInterval(logsRefreshInterval);
+        }
+        logsRefreshInterval = setInterval(function() {
+            fetchLogs(1);
+        }, 3000);
+    }
+    
+    startLogsAutoRefresh();
+
+    let pollInterval = null;
 
     // Test toggle button
     $('#testToggle').click(function(e) {
@@ -77,42 +79,66 @@ jQuery(document).ready(function($) {
         
         $.post(ajaxurl, {
             action: isTesting ? 'stop_webhook_test' : 'start_webhook_test',
-            security: webhookLogs.nonce // Use localized nonce
-        }).done(function() {
-            $btn.toggleClass('active')
-                .toggleClass('button-primary', isTesting)
-                .toggleClass('button-secondary', !isTesting)
-                .text(isTesting ? 'Start Listening' : 'Stop Testing');
-            $('#testStatus').toggle(!isTesting);
+            security: webhookLogs.nonce
+        }).done(function(response) {
+            if (response.success) {
+                $btn.toggleClass('active')
+                    .toggleClass('button-primary', !response.data.test_active)
+                    .toggleClass('button-secondary', response.data.test_active)
+                    .text(response.data.test_active ? 'Stop Testing' : 'Start Listening');
+                
+                $('#testStatus').toggle(response.data.test_active);
+                
+                if (response.data.test_active) {
+                    startPolling();
+                } else {
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                }
+            }
         });
     });
 
-    // Test mode polling
-    if($('#testStatus').is(':visible')) {
-        let pollInterval = setInterval(() => {
+    // Test mode polling function
+    function startPolling() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+        }
+
+        pollInterval = setInterval(() => {
             $.post(ajaxurl, {
                 action: 'get_webhook_test',
                 security: webhookLogs.nonce
             }, function(response) {
-                if(response.success) {
-                    if(response.data) {
-                        $('#testResults').html('<pre>' + JSON.stringify(response.data, null, 2) + '</pre>');
+                if (response.success) {
+                    if (response.data.results) {
+                        $('#testResults').html('<pre>' + JSON.stringify(response.data.results, null, 2) + '</pre>');
                     }
-                    if(!response.data || !response.data.test_active) {
+                    if (!response.data.test_active) {
                         clearInterval(pollInterval);
+                        pollInterval = null;
                         $('#testStatus').hide();
-                        $('#testToggle').text('Start Listening').removeClass('button-secondary').addClass('button-primary');
+                        $('#testToggle')
+                            .text('Start Listening')
+                            .removeClass('button-secondary')
+                            .addClass('button-primary')
+                            .removeClass('active');
                     }
                 }
             });
         }, 3000);
     }
 
-    // Add clipboard initialization debug
-    console.log('Clipboard initialized:', typeof ClipboardJS);
+    // Start polling if test mode is active
+    if ($('#testStatus').is(':visible')) {
+        startPolling();
+    }
+
+    // Initialize clipboard
     new ClipboardJS('.copy-key, .copy-url', {
         text: function(trigger) {
-            console.log('Clipboard target:', trigger);
             return trigger.dataset.clipboardTarget ? 
                 document.querySelector(trigger.dataset.clipboardTarget).value :
                 trigger.dataset.clipboardText;
