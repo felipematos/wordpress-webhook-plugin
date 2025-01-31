@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload and post creation
- * Version: 1.8.9
+ * Version: 1.8.11
  * Author: Felipe Matos
  */
 
@@ -560,11 +560,19 @@ class Webhook_Handler {
             fwrite($temp_file, $file_data);
             $file_path = stream_get_meta_data($temp_file)['uri'];
 
+            // Log file path and a portion of the content
+            error_log('Temporary File Path: ' . $file_path);
+            rewind($temp_file); // Reset file pointer
+            $file_content = fread($temp_file, 100); // Read first 100 bytes
+            error_log('Temporary File Content (first 100 bytes): ' . $file_content);
+
             // Debugging: Log file properties
             error_log('File URL: ' . $file_url);
             error_log('File Path: ' . $file_path);
             error_log('File Type: ' . mime_content_type($file_path));
             error_log('File Size: ' . filesize($file_path));
+
+
 
             $files['file'] = [
                 'name' => $file_name,
@@ -588,6 +596,7 @@ class Webhook_Handler {
         $upload = wp_handle_upload($files['file'], ['test_form' => false]);
         
         if(isset($upload['error'])) {
+            error_log('Upload Error: ' . $upload['error']);
             return new WP_Error('upload_error', $upload['error'], ['status' => 500]);
         }
 
