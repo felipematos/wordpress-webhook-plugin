@@ -1,0 +1,33 @@
+.log-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    padding: 15px;
+}
+.log-card.status-2 { background-color: #e8f5e9; }
+.log-card.status-4 { background-color: #fff3e0; }
+.log-card.status-5 { background-color: #ffebee; }
+.log-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.log-details { display: none; }
+.log-card.expanded .log-details { display: block; }
+.log-section pre {
+    background: rgba(0,0,0,0.05);
+    padding: 10px;
+    overflow-x: auto;
+}
+.copy-button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    margin-left: 10px;
+}
+.log-pagination {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
