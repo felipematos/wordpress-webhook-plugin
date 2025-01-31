@@ -193,14 +193,36 @@ jQuery(document).ready(function($) {
     // CSS to handle collapsible behavior
     const style = document.createElement('style');
     style.textContent = `
+    .log-toggle {
+        display: inline-block;
+        margin-left: 10px;
+        cursor: pointer;
+    }
+    .log-summary {
+        cursor: pointer;
+    }
     .collapsible-content.collapsed {
         display: none;
     }
-    .collapsible-title {
-        cursor: pointer;
+    .collapsible-content.expanded {
+        display: block;
     }
-    `;
+`;
     document.head.appendChild(style);
+
+    // Ensure the log-summary is clickable
+    $('#webhookLogsContainer').on('click', '.log-summary', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $card = $(this).closest('.log-card');
+        const $details = $card.find('.log-details');
+
+        $details.slideToggle(200, function() {
+            const isVisible = $details.is(':visible');
+            $card.toggleClass('expanded', isVisible);
+        });
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         const logEntries = document.querySelectorAll('.log-entry');

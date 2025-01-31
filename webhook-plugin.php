@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Webhook Handler
- * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.8.5
+ * Plugin Name: Simple Webhook Handler
+ * Description: Custom API-Rest webhook endpoint for media upload and post creation
+ * Version: 1.8.7
  */
 
 class Webhook_Handler {
@@ -730,25 +730,33 @@ class Webhook_Handler {
                     <span class="log-time">'.mysql2date('M j, Y H:i:s', $log->time).'</span>
                     <span class="log-status">HTTP '.$log->status_code.'</span>
                     <span class="log-method">'.$log->method.'</span>
-                    <span class="log-endpoint">'.$log->endpoint.'</span>
+                    <span class="log-endpoint"><a href="'.$log->endpoint.'" target="_blank">'.$log->endpoint.'</a></span>
                 </div>
                 <button class="log-toggle button button-small">Details</button>
             </div>
             <div class="log-details">
                 <div class="log-section">
                     <strong>Headers:</strong> 
-                    <pre>'.esc_html(print_r($headers, true)).'</pre>
+                    <pre>'.wp_kses_post($this->make_clickable(print_r($headers, true))).'</pre>
                 </div>
             <div class="log-section">
                     <strong>Parameters:</strong>
-                    <pre>'.esc_html(print_r($params, true)).'</pre>
+                    <pre>'.wp_kses_post($this->make_clickable(print_r($params, true))).'</pre>
                 </div>
                 <div class="log-section">
                     <strong>Response:</strong> 
-                    <pre>'.esc_html($log->response).'</pre>
+                    <pre>'.wp_kses_post($this->make_clickable($log->response)).'</pre>
                 </div>
             </div>
         </div>';
+    }
+
+    private function make_clickable($text) {
+        return preg_replace(
+            '/(https?:\/\/\S+)/',
+            '<a href="$1" target="_blank">$1</a>',
+            $text
+        );
     }
 
     public function activate() {
