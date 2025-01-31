@@ -202,7 +202,6 @@ jQuery(document).ready(function($) {
     `;
     document.head.appendChild(style);
 
-    // Ensure log panels are collapsible and togglable
     document.addEventListener('DOMContentLoaded', function() {
         const logEntries = document.querySelectorAll('.log-entry');
         logEntries.forEach(entry => {
@@ -210,10 +209,16 @@ jQuery(document).ready(function($) {
             sections.forEach(section => {
                 const title = section.querySelector('strong');
                 const content = section.querySelector('pre');
+                const arrow = document.createElement('span');
+                arrow.textContent = '▶'; // Right arrow
+                arrow.style.marginLeft = '5px';
+                title.appendChild(arrow);
                 title.style.cursor = 'pointer';
                 content.style.display = 'none'; // Initially hide content
                 title.addEventListener('click', () => {
-                    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                    const isCollapsed = content.style.display === 'none';
+                    content.style.display = isCollapsed ? 'block' : 'none';
+                    arrow.textContent = isCollapsed ? '▼' : '▶'; // Down arrow when expanded
                 });
             });
         });

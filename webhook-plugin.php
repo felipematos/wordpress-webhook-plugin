@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.8.1
+ * Version: 1.8.4
  */
 
 class Webhook_Handler {
@@ -191,6 +191,7 @@ class Webhook_Handler {
                         <td>
                             <input type="text" id="webhook_auth_key" name="webhook_auth_key" value="<?php echo esc_attr(get_option('webhook_auth_key')); ?>" readonly />
                             <button type="button" id="refresh-auth-key" class="button"><span class="dashicons dashicons-update"></span></button>
+                            <button type="button" id="copy-auth-key" class="button"><span class="dashicons dashicons-admin-page"></span></button>
                         </td>
                     </tr>
                 </table>
@@ -281,6 +282,15 @@ class Webhook_Handler {
                         console.error('Error refreshing auth key:', response.data);
                     }
                 });
+            });
+
+            // Copy auth key
+            $('#copy-auth-key').click(function(e) {
+                e.preventDefault();
+                const authKey = document.getElementById("webhook_auth_key");
+                authKey.select();
+                document.execCommand("copy");
+                alert("Auth Key copied to clipboard");
             });
         });
         </script>
@@ -380,9 +390,8 @@ class Webhook_Handler {
         $key = esc_attr(get_option('webhook_auth_key'));
         echo "<div class='auth-key-wrapper' style='display:flex;gap:10px;align-items:center;'>
             <input type='text' id='webhook_auth_key' value='{$key}' class='regular-text' readonly>
-            <button type='button' class='button button-secondary copy-key' data-clipboard-target='#webhook_auth_key'>
-                <span class='dashicons dashicons-clipboard'></span>
-            </button>
+            <button type='button' id='refresh-auth-key' class='button'><span class='dashicons dashicons-update'></span></button>
+            <button type='button' id='copy-auth-key' class='button'><span class='dashicons dashicons-admin-page'></span></button>
         </div>";
         echo "<p class='description'>Authentication key required in X-Auth-Key header</p>";
     }
@@ -495,6 +504,7 @@ class Webhook_Handler {
             ]);
 
             // Use JSON_UNESCAPED_SLASHES for encoding
+            echo wp_json_encode($rest_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             return wp_json_encode($rest_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
         } catch (Exception $e) {
@@ -590,7 +600,8 @@ class Webhook_Handler {
             'post_title' => basename($upload['file']),
             'post_content' => '',
             'post_status' => 'inherit',
-            'guid' => $upload['url']
+            'guid' => $upload['url'],
+            'post_mime_type' => $files['file']['type'] // Set the correct MIME type
         ];
 
         $attachment_id = wp_insert_attachment($attachment, $upload['file']);
@@ -670,6 +681,7 @@ class Webhook_Handler {
             require_once(ABSPATH . 'wp-admin/includes/image.php');
             $attach_data = wp_generate_attachment_metadata($attach_id, $upload['file']);
             wp_update_attachment_metadata($attach_id, $attach_data);
+
             return $attach_id;
         } else {
             return new WP_Error('upload_error', $upload['error'], ['status' => 500]);
