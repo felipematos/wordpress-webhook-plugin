@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.8.4
+ * Version: 1.8.5
  */
 
 class Webhook_Handler {
@@ -441,21 +441,17 @@ class Webhook_Handler {
                 return $this->format_error_response(new WP_Error('rate_limited', 'Too many requests', ['status' => 429]));
             }
 
-            // Processar a solicitação
             $response_data = $this->process_request($request);
             $status_code = is_wp_error($response_data) ? ($response_data->get_error_data()['status'] ?? 500) : 200;
             $response_json = is_wp_error($response_data) ? $response_data->get_error_message() : $response_data;
 
-            // Debugging: Logar a resposta antes de codificar
-            if (empty($response_json)) {
-                error_log('Debug: $response_json is empty');
-            } else {
-                error_log('Debug: $response_json - ' . print_r($response_json, true));
-            }
+            // Prepare response data
+            $data = [
+                'success' => !is_wp_error($response_data),
+                'data' => $response_json
+            ];
 
-            // Preparar dados para log
-            $log_response = is_wp_error($response_data) ? wp_json_encode(['error' => $response_json], JSON_PRETTY_PRINT) : wp_json_encode($response_json, JSON_PRETTY_PRINT);
-
+            // Log the response data before sending
             $log_data = [
                 'time' => current_time('mysql'),
                 'endpoint' => $request->get_route(),
@@ -465,13 +461,10 @@ class Webhook_Handler {
                 'files' => wp_json_encode($request->get_file_params(), JSON_UNESCAPED_SLASHES),
                 'ip' => $_SERVER['REMOTE_ADDR'],
                 'status_code' => $status_code,
-                'response' => wp_json_encode($log_response, JSON_UNESCAPED_SLASHES)
+                'response' => wp_json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
             ];
 
-            // Make URLs clickable in logs
-            $log_data['response'] = preg_replace('/(https?:\/\/[^\s]+)/', '<a href="$1" target="_blank">$1</a>', $log_data['response']);
-
-            // Inserir log no banco de dados
+            // Insert log into the database
             $log_result = $wpdb->insert(
                 $wpdb->prefix . 'webhook_logs',
                 $log_data,
@@ -482,31 +475,8 @@ class Webhook_Handler {
                 error_log('Webhook Logging Failed: ' . $wpdb->last_error);
             }
 
-            // Preparar resposta para o cliente
-            if (is_wp_error($response_data)) {
-                $data = [
-                    'success' => false,
-                    'error' => $response_json
-                ];
-            } else {
-                $data = [
-                    'success' => true,
-                    'data' => $response_json
-                ];
-            }
-
-            // Criar objeto WP_REST_Response
-            $rest_response = new WP_REST_Response($data, $status_code);
-            $rest_response->set_headers([
-                'Content-Type' => 'application/json; charset=utf-8',
-                'X-Content-Type-Options' => 'nosniff',
-                'Cache-Control' => 'no-cache, must-revalidate, max-age=0'
-            ]);
-
-            // Use JSON_UNESCAPED_SLASHES for encoding
-            echo wp_json_encode($rest_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-            return wp_json_encode($rest_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-
+            // Send JSON response
+            wp_send_json($data);
         } catch (Exception $e) {
             error_log('Webhook Critical Error: ' . $e->getMessage());
             return new WP_REST_Response([
