@@ -149,4 +149,56 @@ jQuery(document).ready(function($) {
                 trigger.dataset.clipboardText;
         }
     });
+
+    // Render log function
+    function renderLog(log) {
+        const logContainer = document.createElement('div');
+        logContainer.classList.add('log-entry');
+
+        // Create collapsible panels
+        const headersPanel = createCollapsiblePanel('Headers', log.headers, true);
+        const paramsPanel = createCollapsiblePanel('Parameters', log.params);
+        const responsePanel = createCollapsiblePanel('Response', log.response);
+
+        // Append panels in the desired order
+        logContainer.appendChild(headersPanel);
+        logContainer.appendChild(paramsPanel);
+        logContainer.appendChild(responsePanel);
+
+        return logContainer;
+    }
+
+    // Create collapsible panel function
+    function createCollapsiblePanel(title, content, collapsed = false) {
+        const panel = document.createElement('div');
+        const panelTitle = document.createElement('h3');
+        panelTitle.textContent = title;
+        panelTitle.classList.add('collapsible-title');
+        panelTitle.addEventListener('click', () => {
+            panelContent.classList.toggle('collapsed');
+        });
+
+        const panelContent = document.createElement('div');
+        panelContent.innerHTML = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+        panelContent.classList.add('collapsible-content');
+        if (collapsed) {
+            panelContent.classList.add('collapsed');
+        }
+
+        panel.appendChild(panelTitle);
+        panel.appendChild(panelContent);
+        return panel;
+    }
+
+    // CSS to handle collapsible behavior
+    const style = document.createElement('style');
+    style.textContent = `
+    .collapsible-content.collapsed {
+        display: none;
+    }
+    .collapsible-title {
+        cursor: pointer;
+    }
+    `;
+    document.head.appendChild(style);
 });

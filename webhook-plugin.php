@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.7
+ * Version: 1.7.1
  */
 
 class Webhook_Handler {
@@ -419,9 +419,9 @@ class Webhook_Handler {
                 'time' => current_time('mysql'),
                 'endpoint' => $request->get_route(),
                 'method' => $request->get_method(),
-                'headers' => wp_json_encode($request->get_headers()),
-                'params' => wp_json_encode($request->get_params(), JSON_FORCE_OBJECT),
-                'files' => wp_json_encode($request->get_file_params()),
+                'headers' => wp_json_encode($request->get_headers(), JSON_UNESCAPED_SLASHES),
+                'params' => wp_json_encode($request->get_params(), JSON_FORCE_OBJECT | JSON_UNESCAPED_SLASHES),
+                'files' => wp_json_encode($request->get_file_params(), JSON_UNESCAPED_SLASHES),
                 'ip' => $_SERVER['REMOTE_ADDR'],
                 'status_code' => $status_code,
                 'response' => $log_response
