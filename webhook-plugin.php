@@ -556,23 +556,12 @@ class Webhook_Handler {
             $file_url = $params['file_url'];
             $file_data = file_get_contents($file_url);
             $file_name = basename($file_url);
-            $temp_file = tmpfile();
-            fwrite($temp_file, $file_data);
-            $file_path = stream_get_meta_data($temp_file)['uri'];
-
-            // Log file path and a portion of the content
-            error_log('Temporary File Path: ' . $file_path);
-            rewind($temp_file); // Reset file pointer
-            $file_content = fread($temp_file, 100); // Read first 100 bytes
-            error_log('Temporary File Content (first 100 bytes): ' . $file_content);
-
-            // Debugging: Log file properties
-            error_log('File URL: ' . $file_url);
-            error_log('File Path: ' . $file_path);
-            error_log('File Type: ' . mime_content_type($file_path));
-            error_log('File Size: ' . filesize($file_path));
-
-
+            
+            // Use custom temporary directory
+            $custom_tmp_dir = '/home/u832936287/domains/blog.felipematos.net/public_html/tmp';
+            $file_path = $custom_tmp_dir . '/' . uniqid() . '_' . $file_name;
+            
+            file_put_contents($file_path, $file_data);
 
             $files['file'] = [
                 'name' => $file_name,
@@ -583,9 +572,8 @@ class Webhook_Handler {
             ];
         }
 
-        // Proceed with the existing upload logic
         $allowed_types = ['image/jpeg', 'image/png', 'application/pdf'];
-        if(!in_array($files['file']['type'], $allowed_types)) {
+        if (!in_array($files['file']['type'], $allowed_types)) {
             return new WP_Error('invalid_type', 'Unsupported file type', ['status' => 400]);
         }
 
@@ -595,7 +583,7 @@ class Webhook_Handler {
 
         $upload = wp_handle_upload($files['file'], ['test_form' => false]);
         
-        if(isset($upload['error'])) {
+        if (isset($upload['error'])) {
             error_log('Upload Error: ' . $upload['error']);
             return new WP_Error('upload_error', $upload['error'], ['status' => 500]);
         }
@@ -612,7 +600,7 @@ class Webhook_Handler {
         $metadata = wp_generate_attachment_metadata($attachment_id, $upload['file']);
         wp_update_attachment_metadata($attachment_id, $metadata);
 
-        if(is_wp_error($attachment_id)) {
+        if (is_wp_error($attachment_id)) {
             @unlink($upload['file']);
             return $attachment_id;
         }
