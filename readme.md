@@ -23,6 +23,34 @@ curl -X POST \
   https://yoursite.com/wp-json/webhook/v1/upload
 ```
 
+### Uploading Files to the Webhook
+
+The webhook supports uploading files either directly or from an external URL.
+
+### Direct File Upload
+To upload a file directly, use the `file` parameter in the form data.
+
+**Example cURL Command:**
+```bash
+curl -X POST "https://your-webhook-url.com/webhook/v1/upload" \
+     -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     -F "action=upload" \
+     -F "file=@/path/to/your/image.png"
+```
+
+### Uploading from a URL
+To upload a file from an external URL, use the `file_url` parameter.
+
+**Example cURL Command:**
+```bash
+curl -X POST "https://your-webhook-url.com/webhook/v1/upload" \
+     -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     -F "action=upload" \
+     -F "file_url=https://example.com/path/to/your/image.png"
+```
+
+Ensure that the URL is accessible and points directly to the file you wish to upload. The server will download the file from the URL and process it as if it were uploaded directly.
+
 ### Create Post
 ```bash
 curl -X POST \

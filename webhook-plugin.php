@@ -2,7 +2,8 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload and post creation
- * Version: 1.8.7
+ * Version: 1.8.9
+ * Author: Felipe Matos
  */
 
 class Webhook_Handler {
@@ -545,11 +546,36 @@ class Webhook_Handler {
 
     private function handle_upload($request) {
         $files = $request->get_file_params();
+        $params = $request->get_params();
         
-        if(empty($files['file'])) {
-            return new WP_Error('no_file', 'No file uploaded', ['status' => 400]);
+        if(empty($files['file']) && empty($params['file_url'])) {
+            return new WP_Error('no_file', 'No file uploaded or URL provided', ['status' => 400]);
         }
 
+        if (!empty($params['file_url'])) {
+            $file_url = $params['file_url'];
+            $file_data = file_get_contents($file_url);
+            $file_name = basename($file_url);
+            $temp_file = tmpfile();
+            fwrite($temp_file, $file_data);
+            $file_path = stream_get_meta_data($temp_file)['uri'];
+
+            // Debugging: Log file properties
+            error_log('File URL: ' . $file_url);
+            error_log('File Path: ' . $file_path);
+            error_log('File Type: ' . mime_content_type($file_path));
+            error_log('File Size: ' . filesize($file_path));
+
+            $files['file'] = [
+                'name' => $file_name,
+                'tmp_name' => $file_path,
+                'type' => mime_content_type($file_path),
+                'size' => filesize($file_path),
+                'error' => 0
+            ];
+        }
+
+        // Proceed with the existing upload logic
         $allowed_types = ['image/jpeg', 'image/png', 'application/pdf'];
         if(!in_array($files['file']['type'], $allowed_types)) {
             return new WP_Error('invalid_type', 'Unsupported file type', ['status' => 400]);
@@ -562,7 +588,6 @@ class Webhook_Handler {
         $upload = wp_handle_upload($files['file'], ['test_form' => false]);
         
         if(isset($upload['error'])) {
-            error_log('Webhook Request: ' . print_r($request->get_params(), true)); // Remove after debugging
             return new WP_Error('upload_error', $upload['error'], ['status' => 500]);
         }
 
@@ -571,7 +596,7 @@ class Webhook_Handler {
             'post_content' => '',
             'post_status' => 'inherit',
             'guid' => $upload['url'],
-            'post_mime_type' => $files['file']['type'] // Set the correct MIME type
+            'post_mime_type' => $files['file']['type']
         ];
 
         $attachment_id = wp_insert_attachment($attachment, $upload['file']);
