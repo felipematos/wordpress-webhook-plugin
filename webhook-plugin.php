@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.5.18
+ * Version: 1.6 o1-refactore
  */
 
 class Webhook_Handler {
@@ -230,7 +230,15 @@ class Webhook_Handler {
                     security: '<?php echo wp_create_nonce('webhook_logs'); ?>',
                     page: 1
                 }, function(response) {
-                    logContainer.html(response.html);
+                    if(response.success) {
+                        logContainer.html(response.data.html);
+                    } else {
+                        console.error('Error loading logs:', response.data);
+                        logContainer.html('<div class="notice notice-error">Error loading logs</div>');
+                    }
+                }).fail(function(xhr) {
+                    console.error('Log request failed:', xhr.responseText);
+                    logContainer.html('<div class="notice notice-error">Request failed: ' + xhr.statusText + '</div>');
                 });
             });
 
@@ -240,10 +248,15 @@ class Webhook_Handler {
                     action: 'clear_logs',
                     security: '<?php echo wp_create_nonce('webhook_logs'); ?>'
                 }, function(response) {
-                    logContainer.html('');
+                    if(response.success) {
+                        logContainer.html('');
+                    } else {
+                        console.error('Error clearing logs:', response.data);
+                    }
                 });
             });
 
+            // Trigger initial load
             refreshButton.trigger('click');
         });
         </script>
@@ -380,80 +393,72 @@ class Webhook_Handler {
         global $wpdb;
         
         try {
-            $verified = $this->verify_request($request);
-            if(is_wp_error($verified)) {
-                return $this->format_error_response($verified);
+            // Verificação de autorização já realizada pelo 'permission_callback'
+
+            // Verificar Limitação de Taxa
+            if ($this->is_rate_limited()) {
+                return $this->format_error_response(new WP_Error('rate_limited', 'Too many requests', ['status' => 429]));
             }
 
+            // Processar a solicitação
             $response_data = $this->process_request($request);
-            $status_code = is_wp_error($response_data) ? $response_data->get_error_data()['status'] : 200;
+            $status_code = is_wp_error($response_data) ? ($response_data->get_error_data()['status'] ?? 500) : 200;
             $response_json = is_wp_error($response_data) ? $response_data->get_error_message() : $response_data;
 
-            // Debugging: Log the data before encoding
-            if (empty($data)) {
-                error_log('Debug: $data is empty before encoding');
-            } else {
-                error_log('Debug: $data before encoding - ' . print_r($data, true));
-            }
-
-            $log_data = [
-                'time' => current_time('mysql'),
-                'endpoint' => $request->get_route(),
-                'method' => $request->get_method(),
-                'headers' => json_encode($request->get_headers()),
-                'params' => json_encode($request->get_params(), JSON_FORCE_OBJECT),
-                'files' => json_encode($request->get_file_params()),
-                'ip' => $_SERVER['REMOTE_ADDR'],
-                'status_code' => $status_code,
-                'response' => wp_json_encode($data, JSON_PRETTY_PRINT)
-            ];
-
-            $log_result = $wpdb->insert(
-                $wpdb->prefix . 'webhook_logs',
-                $log_data,
-                ['%s','%s','%s','%s','%s','%s','%s','%d','%s']
-            );
-
-            if (false === $log_result) {
-                error_log('Webhook Logging Failed: ' . $wpdb->last_error);
-            }
-
-            // Debugging: Log the response_json before wrapping
+            // Debugging: Logar a resposta antes de codificar
             if (empty($response_json)) {
                 error_log('Debug: $response_json is empty');
             } else {
                 error_log('Debug: $response_json - ' . print_r($response_json, true));
             }
 
-            // Prepare response data
-            if (is_wp_error($response_json)) {
-                $data = [
-                    'body' => [
-                        'success' => false,
-                        'error' => $response_json->get_error_message()
-                    ]
-                ];
-                $code = $response_json->get_error_data()['status'];
-            } else {
-                // Wrap the response in a body object
-                $data = [
-                    'body' => $response_json
-                ];
-                $code = 200;
+            // Preparar dados para log
+            $log_response = is_wp_error($response_data) ? wp_json_encode(['error' => $response_json], JSON_PRETTY_PRINT) : wp_json_encode($response_json, JSON_PRETTY_PRINT);
+
+            $log_data = [
+                'time' => current_time('mysql'),
+                'endpoint' => $request->get_route(),
+                'method' => $request->get_method(),
+                'headers' => wp_json_encode($request->get_headers()),
+                'params' => wp_json_encode($request->get_params(), JSON_FORCE_OBJECT),
+                'files' => wp_json_encode($request->get_file_params()),
+                'ip' => $_SERVER['REMOTE_ADDR'],
+                'status_code' => $status_code,
+                'response' => $log_response
+            ];
+
+            // Inserir log no banco de dados
+            $log_result = $wpdb->insert(
+                $wpdb->prefix . 'webhook_logs',
+                $log_data,
+                ['%s','%s','%s','%s','%s','%s','%d','%s']
+            );
+
+            if (false === $log_result) {
+                error_log('Webhook Logging Failed: ' . $wpdb->last_error);
             }
 
-            // Send direct JSON response
-            status_header($code);
-            header('Content-Type: application/json; charset=utf-8');
-            header('X-Content-Type-Options: nosniff');
-            header('Cache-Control: no-cache, must-revalidate, max-age=0');
-            
-            if (!headers_sent()) {
-                http_response_code($code);
+            // Preparar resposta para o cliente
+            if (is_wp_error($response_data)) {
+                $data = [
+                    'success' => false,
+                    'error' => $response_json
+                ];
+            } else {
+                $data = [
+                    'success' => true,
+                    'data' => $response_json
+                ];
             }
-            
-            echo wp_json_encode($data, JSON_PRETTY_PRINT);
-            exit;
+
+            // Criar objeto WP_REST_Response
+            $rest_response = new WP_REST_Response($data, $status_code);
+            $rest_response->set_headers([
+                'Content-Type' => 'application/json; charset=utf-8',
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control' => 'no-cache, must-revalidate, max-age=0'
+            ]);
+            return $rest_response;
 
         } catch (Exception $e) {
             error_log('Webhook Critical Error: ' . $e->getMessage());
@@ -468,13 +473,20 @@ class Webhook_Handler {
     }
 
     private function format_error_response(WP_Error $error) {
-        return new WP_REST_Response([
+        $error_body = [
+            'success' => false,
             'error' => [
                 'code' => $error->get_error_code(),
                 'message' => $error->get_error_message(),
-                'data' => $error->get_error_data()
+                'details' => $error->get_error_data()
             ]
-        ], $error->get_error_data()['status'] ?? 500);
+        ];
+
+        $status_code = $error->get_error_data()['status'] ?? 500;
+
+        $rest_response = new WP_REST_Response($error_body, $status_code);
+        $rest_response->set_headers(['Content-Type' => 'application/json']);
+        return $rest_response;
     }
 
     private function format_response($response) {
@@ -515,8 +527,6 @@ class Webhook_Handler {
     }
 
     private function handle_upload($request) {
-
-        
         $files = $request->get_file_params();
         
         if(empty($files['file'])) {
@@ -535,8 +545,8 @@ class Webhook_Handler {
         $upload = wp_handle_upload($files['file'], ['test_form' => false]);
         
         if(isset($upload['error'])) {
-            return new WP_Error('upload_error', $upload['error'], ['status' => 500]);
             error_log('Webhook Request: ' . print_r($request->get_params(), true)); // Remove after debugging
+            return new WP_Error('upload_error', $upload['error'], ['status' => 500]);
         }
 
         $attachment = [
@@ -634,14 +644,17 @@ class Webhook_Handler {
         if(empty($auth_header)) {
             return new WP_Error('missing_auth', 'Authentication required', ['status' => 401]);
         }
-        return hash_equals($this->get_auth_key(), $auth_header);
+        if (!hash_equals($this->get_auth_key(), $auth_header)) {
+            return new WP_Error('invalid_auth', 'Invalid authentication key', ['status' => 403]);
+        }
+        return true;
     }
 
     private function is_rate_limited() {
         $transient_name = 'webhook_limit_' . $_SERVER['REMOTE_ADDR'];
         $attempts = get_transient($transient_name) ?: 0;
         
-        if($attempts > 5) {
+        if($attempts >= 5) { // Permit exatamente 5 tentativas
             return true;
         }
 
