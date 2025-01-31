@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.6 o1-refactore
+ * Version: 1.7
  */
 
 class Webhook_Handler {
@@ -458,7 +458,9 @@ class Webhook_Handler {
                 'X-Content-Type-Options' => 'nosniff',
                 'Cache-Control' => 'no-cache, must-revalidate, max-age=0'
             ]);
-            return $rest_response;
+
+            // Use JSON_UNESCAPED_SLASHES for encoding
+            return wp_json_encode($rest_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
         } catch (Exception $e) {
             error_log('Webhook Critical Error: ' . $e->getMessage());
@@ -593,11 +595,21 @@ class Webhook_Handler {
             return new WP_Error('post_creation_failed', $post_id->get_error_message(), ['status' => 500]);
         }
 
-        // Handle featured image
+        // Handle featured image from URL
         if (!empty($request['featured_image'])) {
             $attachment_id = $this->handle_upload_from_url($request['featured_image']);
             if (!is_wp_error($attachment_id)) {
                 set_post_thumbnail($post_id, $attachment_id);
+            }
+        }
+
+        // Handle featured media by ID
+        if (!empty($request['featuredMediaId'])) {
+            $media_id = intval($request['featuredMediaId']);
+            if (get_post_type($media_id) === 'attachment') {
+                set_post_thumbnail($post_id, $media_id);
+            } else {
+                return new WP_Error('invalid_media', 'Invalid media ID provided', ['status' => 400]);
             }
         }
 
