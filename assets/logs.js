@@ -201,4 +201,21 @@ jQuery(document).ready(function($) {
     }
     `;
     document.head.appendChild(style);
+
+    // Ensure log panels are collapsible and togglable
+    document.addEventListener('DOMContentLoaded', function() {
+        const logEntries = document.querySelectorAll('.log-entry');
+        logEntries.forEach(entry => {
+            const sections = entry.querySelectorAll('.log-section');
+            sections.forEach(section => {
+                const title = section.querySelector('strong');
+                const content = section.querySelector('pre');
+                title.style.cursor = 'pointer';
+                content.style.display = 'none'; // Initially hide content
+                title.addEventListener('click', () => {
+                    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+        });
+    });
 });

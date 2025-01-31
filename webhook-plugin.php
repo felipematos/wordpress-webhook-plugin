@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.7.1
+ * Version: 1.8.1
  */
 
 class Webhook_Handler {
@@ -18,6 +18,7 @@ class Webhook_Handler {
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_ajax_get_logs', [$this, 'ajax_get_logs']);
         add_action('wp_ajax_clear_logs', [$this, 'clear_logs']);
+        add_action('wp_ajax_refresh_auth_key', [$this, 'refresh_auth_key']);
         
         // Add plugin action links
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), [$this, 'plugin_settings_link']);
@@ -183,8 +184,16 @@ class Webhook_Handler {
                 <?php
                 settings_fields('webhook_settings');
                 do_settings_sections('webhook-settings');
-                submit_button();
                 ?>
+                <table class="form-table">
+                    <tr valign="top">
+                        <th scope="row">API Auth Key</th>
+                        <td>
+                            <input type="text" id="webhook_auth_key" name="webhook_auth_key" value="<?php echo esc_attr(get_option('webhook_auth_key')); ?>" readonly />
+                            <button type="button" id="refresh-auth-key" class="button"><span class="dashicons dashicons-update"></span></button>
+                        </td>
+                    </tr>
+                </table>
             </form>
         </div>
         
@@ -258,6 +267,21 @@ class Webhook_Handler {
 
             // Trigger initial load
             refreshButton.trigger('click');
+
+            // Refresh auth key
+            $('#refresh-auth-key').click(function(e) {
+                e.preventDefault();
+                $.post(ajaxurl, {
+                    action: 'refresh_auth_key',
+                    security: '<?php echo wp_create_nonce('webhook_auth_key'); ?>'
+                }, function(response) {
+                    if(response.success) {
+                        $('#webhook_auth_key').val(response.data);
+                    } else {
+                        console.error('Error refreshing auth key:', response.data);
+                    }
+                });
+            });
         });
         </script>
         <?php
@@ -344,6 +368,14 @@ class Webhook_Handler {
         wp_send_json_success();
     }
 
+    public function refresh_auth_key() {
+        check_ajax_referer('webhook_auth_key', 'security');
+        
+        $new_key = wp_generate_password(32, false);
+        update_option('webhook_auth_key', $new_key);
+        wp_send_json_success(['data' => $new_key]);
+    }
+
     public function auth_key_field() {
         $key = esc_attr(get_option('webhook_auth_key'));
         echo "<div class='auth-key-wrapper' style='display:flex;gap:10px;align-items:center;'>
@@ -424,8 +456,11 @@ class Webhook_Handler {
                 'files' => wp_json_encode($request->get_file_params(), JSON_UNESCAPED_SLASHES),
                 'ip' => $_SERVER['REMOTE_ADDR'],
                 'status_code' => $status_code,
-                'response' => $log_response
+                'response' => wp_json_encode($log_response, JSON_UNESCAPED_SLASHES)
             ];
+
+            // Make URLs clickable in logs
+            $log_data['response'] = preg_replace('/(https?:\/\/[^\s]+)/', '<a href="$1" target="_blank">$1</a>', $log_data['response']);
 
             // Inserir log no banco de dados
             $log_result = $wpdb->insert(
@@ -719,12 +754,12 @@ class Webhook_Handler {
             </div>
             <div class="log-details">
                 <div class="log-section">
-                    <strong>Parameters:</strong>
-                    <pre>'.esc_html(print_r($params, true)).'</pre>
-                </div>
-                <div class="log-section">
                     <strong>Headers:</strong> 
                     <pre>'.esc_html(print_r($headers, true)).'</pre>
+                </div>
+            <div class="log-section">
+                    <strong>Parameters:</strong>
+                    <pre>'.esc_html(print_r($params, true)).'</pre>
                 </div>
                 <div class="log-section">
                     <strong>Response:</strong> 
