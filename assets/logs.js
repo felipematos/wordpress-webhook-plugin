@@ -1,5 +1,4 @@
 jQuery(document).ready(function($) {
-    let logsRefreshInterval = null;
     
     // Toggle log details
     $('#webhookLogsContainer').on('click', '.log-toggle', function(e) {
@@ -72,40 +71,8 @@ jQuery(document).ready(function($) {
     // Initial load and setup auto-refresh
     fetchLogs(1);
     
-    // Setup auto-refresh for logs
-    function startLogsAutoRefresh() {
-        if (logsRefreshInterval) {
-            clearInterval(logsRefreshInterval);
-        }
-        
-        // Initial fetch
-        fetchLogs(1);
-        
-        // Setup interval
-        logsRefreshInterval = setInterval(function() {
-            if (!document.hidden) { // Only refresh if page is visible
-                fetchLogs(1);
-            }
-        }, 3000);
-        
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && logsRefreshInterval === null) {
-                startLogsAutoRefresh();
-            }
-        });
-    }
-    
-    // Start auto-refresh
-    startLogsAutoRefresh();
-    
-    // Stop auto-refresh when leaving the page
-    $(window).on('beforeunload', function() {
-        if (logsRefreshInterval) {
-            clearInterval(logsRefreshInterval);
-            logsRefreshInterval = null;
-        }
-    });
+    // Initial fetch
+    fetchLogs(1);
 
     let pollInterval = null;
 

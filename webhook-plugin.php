@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.5.16
+ * Version: 1.5.18
  */
 
 class Webhook_Handler {
@@ -389,6 +389,13 @@ class Webhook_Handler {
             $status_code = is_wp_error($response_data) ? $response_data->get_error_data()['status'] : 200;
             $response_json = is_wp_error($response_data) ? $response_data->get_error_message() : $response_data;
 
+            // Debugging: Log the data before encoding
+            if (empty($data)) {
+                error_log('Debug: $data is empty before encoding');
+            } else {
+                error_log('Debug: $data before encoding - ' . print_r($data, true));
+            }
+
             $log_data = [
                 'time' => current_time('mysql'),
                 'endpoint' => $request->get_route(),
@@ -398,7 +405,7 @@ class Webhook_Handler {
                 'files' => json_encode($request->get_file_params()),
                 'ip' => $_SERVER['REMOTE_ADDR'],
                 'status_code' => $status_code,
-                'response' => json_encode($response_json)
+                'response' => wp_json_encode($data, JSON_PRETTY_PRINT)
             ];
 
             $log_result = $wpdb->insert(
@@ -411,19 +418,42 @@ class Webhook_Handler {
                 error_log('Webhook Logging Failed: ' . $wpdb->last_error);
             }
 
-            // Create response data
-            $response_data = is_wp_error($response_json) ? [
-                'success' => false,
-                'error' => $response_json->get_error_message()
-            ] : [
-                'success' => true,
-                'data' => $response_json
-            ];
+            // Debugging: Log the response_json before wrapping
+            if (empty($response_json)) {
+                error_log('Debug: $response_json is empty');
+            } else {
+                error_log('Debug: $response_json - ' . print_r($response_json, true));
+            }
 
-            // Create REST response with data
-            $response = new WP_REST_Response($response_data, $status_code);
-            $response->set_headers(['Content-Type' => 'application/json']);
-            return $response;
+            // Prepare response data
+            if (is_wp_error($response_json)) {
+                $data = [
+                    'body' => [
+                        'success' => false,
+                        'error' => $response_json->get_error_message()
+                    ]
+                ];
+                $code = $response_json->get_error_data()['status'];
+            } else {
+                // Wrap the response in a body object
+                $data = [
+                    'body' => $response_json
+                ];
+                $code = 200;
+            }
+
+            // Send direct JSON response
+            status_header($code);
+            header('Content-Type: application/json; charset=utf-8');
+            header('X-Content-Type-Options: nosniff');
+            header('Cache-Control: no-cache, must-revalidate, max-age=0');
+            
+            if (!headers_sent()) {
+                http_response_code($code);
+            }
+            
+            echo wp_json_encode($data, JSON_PRETTY_PRINT);
+            exit;
 
         } catch (Exception $e) {
             error_log('Webhook Critical Error: ' . $e->getMessage());
