@@ -34,6 +34,13 @@
     margin-left: 10px;
     padding: 2px 8px;
     border-radius: 3px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.log-toggle:hover {
+    background: #e5e5e5;
+    border-color: #ccc;
 }
 
 .spinner.is-active {
@@ -41,6 +48,35 @@
     display: inline-block;
     margin: 0 0 0 5px;
 }
+.log-details {
+    display: none; /* Initially hidden */
+    margin-top: 10px;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    overflow: auto;
+    max-height: 400px;
+}
+
+.log-details pre {
+    margin: 0;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.log-section {
+    margin-bottom: 10px;
+}
+
+.log-section:last-child {
+    margin-bottom: 0;
+}
+
 .log-pagination {
     margin: 20px 0;
     display: flex;

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webhook Handler
  * Description: Custom webhook endpoint for media upload and post creation
- * Version: 1.5.13
+ * Version: 1.5.16
  */
 
 class Webhook_Handler {
@@ -411,8 +411,18 @@ class Webhook_Handler {
                 error_log('Webhook Logging Failed: ' . $wpdb->last_error);
             }
 
-            $response = new WP_REST_Response($response_json, $status_code);
-            $response->header('Content-Type', 'application/json; charset=utf-8');
+            // Create response data
+            $response_data = is_wp_error($response_json) ? [
+                'success' => false,
+                'error' => $response_json->get_error_message()
+            ] : [
+                'success' => true,
+                'data' => $response_json
+            ];
+
+            // Create REST response with data
+            $response = new WP_REST_Response($response_data, $status_code);
+            $response->set_headers(['Content-Type' => 'application/json']);
             return $response;
 
         } catch (Exception $e) {

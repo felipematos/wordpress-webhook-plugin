@@ -2,12 +2,23 @@ jQuery(document).ready(function($) {
     let logsRefreshInterval = null;
     
     // Toggle log details
-    $(document).on('click', '.log-toggle', function(e) {
+    $('#webhookLogsContainer').on('click', '.log-toggle', function(e) {
         e.preventDefault();
-        const $card = $(this).closest('.log-card');
-        $card.toggleClass('expanded');
-        $(this).text($card.hasClass('expanded') ? 'Hide' : 'Details');
+        e.stopPropagation();
+        
+        const $btn = $(this);
+        const $card = $btn.closest('.log-card');
+        const $details = $card.find('.log-details');
+        
+        $details.slideToggle(200, function() {
+            const isVisible = $details.is(':visible');
+            $btn.text(isVisible ? 'Hide' : 'Details');
+            $card.toggleClass('expanded', isVisible);
+        });
     });
+    
+    // Make sure details are hidden initially
+    $('.log-details').hide();
 
     // Fetch logs function
     function fetchLogs(page) {
@@ -15,15 +26,19 @@ jQuery(document).ready(function($) {
         const $refreshBtn = $('#refreshLogs');
         const $spinner = $('<span class="spinner is-active" style="float: none; margin-left: 4px;"></span>');
         
-        $refreshBtn.prop('disabled', true).after($spinner);
+        // Only show spinner if it's a manual refresh
+        if (page === 1) {
+            $refreshBtn.prop('disabled', true).after($spinner);
+        }
         
-        $.post(ajaxurl, {
+        return $.post(ajaxurl, {
             action: 'get_logs',
             security: webhookLogs.nonce,
             page: page || 1
-        }, function(response) {
+        }).done(function(response) {
             if(response.success) {
                 $container.html(response.data.html);
+                // No need to rebind events since we're using event delegation
             } else {
                 console.error('Error loading logs:', response.data);
                 $container.html('<div class="notice notice-error">Error loading logs</div>');
@@ -62,12 +77,35 @@ jQuery(document).ready(function($) {
         if (logsRefreshInterval) {
             clearInterval(logsRefreshInterval);
         }
+        
+        // Initial fetch
+        fetchLogs(1);
+        
+        // Setup interval
         logsRefreshInterval = setInterval(function() {
-            fetchLogs(1);
+            if (!document.hidden) { // Only refresh if page is visible
+                fetchLogs(1);
+            }
         }, 3000);
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && logsRefreshInterval === null) {
+                startLogsAutoRefresh();
+            }
+        });
     }
     
+    // Start auto-refresh
     startLogsAutoRefresh();
+    
+    // Stop auto-refresh when leaving the page
+    $(window).on('beforeunload', function() {
+        if (logsRefreshInterval) {
+            clearInterval(logsRefreshInterval);
+            logsRefreshInterval = null;
+        }
+    });
 
     let pollInterval = null;
 
