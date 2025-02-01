@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload and post creation
- * Version: 1.8.13
+ * Version: 1.8.14
  * Author: Felipe Matos
  */
 
@@ -444,13 +444,15 @@ class Webhook_Handler {
 
             $response_data = $this->process_request($request);
             $status_code = is_wp_error($response_data) ? ($response_data->get_error_data()['status'] ?? 500) : 200;
-            $response_json = is_wp_error($response_data) ? $response_data->get_error_message() : $response_data;
-
-            // Prepare response data
-            $data = [
-                'success' => !is_wp_error($response_data),
-                'data' => $response_json
-            ];
+            if (!is_wp_error($response_data) && is_array($response_data) && isset($response_data['mediaId'])) {
+                $data = array_merge(['success' => true], $response_data);
+            } else {
+                $response_json = is_wp_error($response_data) ? $response_data->get_error_message() : $response_data;
+                $data = [
+                    'success' => !is_wp_error($response_data),
+                    'data' => $response_json
+                ];
+            }
 
             // Log the response data before sending
             $log_data = [
@@ -664,7 +666,12 @@ class Webhook_Handler {
             $attach_data = wp_generate_attachment_metadata($attach_id, $upload['file']);
             wp_update_attachment_metadata($attach_id, $attach_data);
 
-            return $attach_id;
+            return  [
+                'success' => true,
+                'mediaId' => $attach_id,
+                'public_url' => wp_get_attachment_url($attach_id),
+                'edit_url' => admin_url("upload.php?item=$attach_id")
+            ];
         } else {
             return new WP_Error('upload_error', $upload['error'], ['status' => 500]);
         }

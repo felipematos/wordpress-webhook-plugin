@@ -174,13 +174,40 @@ jQuery(document).ready(function($) {
         const panelTitle = document.createElement('h3');
         panelTitle.textContent = title;
         panelTitle.classList.add('collapsible-title');
+        panelTitle.style.cursor = 'pointer';
         panelTitle.addEventListener('click', () => {
             panelContent.classList.toggle('collapsed');
+        })
+        // Create a toggle button element for expanding/collapsing
+        const toggleBtn = document.createElement('span');
+        toggleBtn.classList.add('toggle-btn');
+        toggleBtn.textContent = collapsed ? '[+]' : '[-]';
+        toggleBtn.style.marginRight = '10px';
+
+        panelTitle.appendChild(toggleBtn);  
+        panelTitle.appendChild(document.createTextNode(title));
+
+        toggleBtn.addEventListener('click', () => {
+            panelContent.classList.toggle('collapsed');
+            toggleBtn.textContent = panelContent.classList.contains('collapsed') ? '[+]' : '[-]';
         });
 
         const panelContent = document.createElement('div');
         panelContent.innerHTML = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
         panelContent.classList.add('collapsible-content');
+        // Set initial display based on collapsed state
+        panelContent.style.display = collapsed ? 'none' : 'block';
+
+        panelTitle.addEventListener('click', () => {
+            if (panelContent.style.display === 'none') {
+                panelContent.style.display = 'block';
+                toggleBtn.textContent = '[-]';
+            } else {
+                panelContent.style.display = 'none';
+                toggleBtn.textContent = '[+]';
+            }
+        });
+
         if (collapsed) {
             panelContent.classList.add('collapsed');
         }
