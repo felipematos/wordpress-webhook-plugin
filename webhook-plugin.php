@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload and post creation
- * Version: 1.8.12
+ * Version: 1.8.13
  * Author: Felipe Matos
  */
 
@@ -553,23 +553,7 @@ class Webhook_Handler {
         }
 
         if (!empty($params['file_url'])) {
-            $file_url = $params['file_url'];
-            $file_data = file_get_contents($file_url);
-            $file_name = basename($file_url);
-            
-            // Use custom temporary directory
-            $custom_tmp_dir = '/home/u832936287/domains/blog.felipematos.net/public_html/tmp';
-            $file_path = $custom_tmp_dir . '/' . uniqid() . '_' . $file_name;
-            
-            file_put_contents($file_path, $file_data);
-
-            $files['file'] = [
-                'name' => $file_name,
-                'tmp_name' => $file_path,
-                'type' => mime_content_type($file_path),
-                'size' => filesize($file_path),
-                'error' => 0
-            ];
+            return $this->handle_upload_from_url($params['file_url']);
         }
 
         $allowed_types = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -585,13 +569,13 @@ class Webhook_Handler {
 
         if (isset($upload['error'])) {
             error_log('Upload Error: ' . $upload['error']);
-            error_log('File Path: ' . $file_path);
-            return new WP_Error('upload_error', json_encode([
+            error_log('File Path: ' . $files['file']['tmp_name']);
+            return new WP_Error('upload_error', [
                 'error' => $upload['error'],
-                'file_path' => $file_path,
+                'file_path' => $files['file']['tmp_name'],
                 'file_type' => $files['file']['type'],
                 'file_size' => $files['file']['size'],
-            ], JSON_PRETTY_PRINT), ['status' => 500]);
+            ], ['status' => 500]);
         }
 
         $attachment = [
