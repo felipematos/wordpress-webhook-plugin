@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload and post creation
- * Version: 1.8.14
+ * Version: 1.8.15
  * Author: Felipe Matos
  */
 
@@ -478,6 +478,10 @@ class Webhook_Handler {
                 error_log('Webhook Logging Failed: ' . $wpdb->last_error);
             }
 
+            // Set response headers
+            header('Access-Control-Allow-Origin: *');
+            header('Content-Type: application/json');
+            
             // Send JSON response
             wp_send_json($data);
         } catch (Exception $e) {

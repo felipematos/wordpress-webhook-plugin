@@ -171,34 +171,29 @@ jQuery(document).ready(function($) {
     // Create collapsible panel function
     function createCollapsiblePanel(title, content, collapsed = false) {
         const panel = document.createElement('div');
+        panel.classList.add('collapsible-panel');
+        
         const panelTitle = document.createElement('h3');
-        panelTitle.textContent = title;
         panelTitle.classList.add('collapsible-title');
         panelTitle.style.cursor = 'pointer';
-        panelTitle.addEventListener('click', () => {
-            panelContent.classList.toggle('collapsed');
-        })
-        // Create a toggle button element for expanding/collapsing
+        
+        // Create the toggle button element
         const toggleBtn = document.createElement('span');
         toggleBtn.classList.add('toggle-btn');
         toggleBtn.textContent = collapsed ? '[+]' : '[-]';
         toggleBtn.style.marginRight = '10px';
-
-        panelTitle.appendChild(toggleBtn);  
+        
+        // Append the toggle button and title text to the panel title
+        panelTitle.appendChild(toggleBtn);
         panelTitle.appendChild(document.createTextNode(title));
-
-        toggleBtn.addEventListener('click', () => {
-            panelContent.classList.toggle('collapsed');
-            toggleBtn.textContent = panelContent.classList.contains('collapsed') ? '[+]' : '[-]';
-        });
-
+        
         const panelContent = document.createElement('div');
-        panelContent.innerHTML = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
         panelContent.classList.add('collapsible-content');
-        // Set initial display based on collapsed state
+        panelContent.innerHTML = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
         panelContent.style.display = collapsed ? 'none' : 'block';
-
-        panelTitle.addEventListener('click', () => {
+        
+        // Single event listener on the panel title to toggle the content display
+        panelTitle.addEventListener('click', function() {
             if (panelContent.style.display === 'none') {
                 panelContent.style.display = 'block';
                 toggleBtn.textContent = '[-]';
@@ -207,13 +202,10 @@ jQuery(document).ready(function($) {
                 toggleBtn.textContent = '[+]';
             }
         });
-
-        if (collapsed) {
-            panelContent.classList.add('collapsed');
-        }
-
+        
         panel.appendChild(panelTitle);
         panel.appendChild(panelContent);
+        
         return panel;
     }
 
