@@ -5,13 +5,15 @@ jQuery(document).ready(function($) {
         e.stopPropagation();
         
         const $btn = $(this);
-        const $card = $btn.closest('.log-card');
-        const $details = $card.find('.log-details');
+        const $details = $btn.closest('.log-card').find('.log-details');
         
-        $details.slideToggle(200, function() {
-            const isVisible = $details.is(':visible');
-            $btn.text(isVisible ? 'Hide Details' : 'Show Details');
-        });
+        if ($details.is(':visible')) {
+            $details.slideUp(200);
+            $btn.text('Show Details');
+        } else {
+            $details.slideDown(200);
+            $btn.text('Hide Details');
+        }
     });
 
     // Toggle collapsible sections
@@ -28,6 +30,10 @@ jQuery(document).ready(function($) {
             $toggleBtn.text(isVisible ? '[-]' : '[+]');
         });
     });
+
+    // Make sure details are hidden initially
+    $('.log-details').hide();
+    $('.collapsible-content').hide();
     
     // Make sure details are hidden initially
     $('.log-details').hide();

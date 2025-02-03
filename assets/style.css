@@ -97,6 +97,12 @@
     border-bottom: 1px solid #e2e4e7;
 }
 
+.log-direction {
+    font-size: 1.2em;
+    color: #666;
+    margin-right: 8px;
+}
+
 .log-info {
     display: flex;
     gap: 15px;

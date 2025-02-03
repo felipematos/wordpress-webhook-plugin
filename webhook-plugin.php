@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
- * Version: 1.9.2
  * Author: Felipe Matos
+ * Version: 1.9.4
  */
 
  
@@ -57,6 +57,7 @@ class Webhook_Handler {
             response text NOT NULL,
             status_code smallint(3) NOT NULL,
             ip varchar(45) NOT NULL,
+            direction varchar(10) DEFAULT 'incoming',
             PRIMARY KEY  (id),
             KEY endpoint (endpoint),
             KEY status_code (status_code)
@@ -842,47 +843,50 @@ class Webhook_Handler {
         $headers = json_decode($log->headers, true) ?: [];
         
         $status_class = 'status-' . substr($log->status_code, 0, 1);
-        return '
-        <div class="log-card ' . $status_class . '">
-            <div class="log-summary">
-                <div class="log-info">
-                    <span class="log-time">'.mysql2date('M j, Y H:i:s', $log->time).'</span>
-                    <span class="log-status">HTTP '.$log->status_code.'</span>
-                    <span class="log-method">'.$log->method.'</span>
-                    <span class="log-endpoint"><a href="'.$log->endpoint.'" target="_blank">'.$log->endpoint.'</a></span>
-                </div>
-                <button class="log-toggle button button-small">Show Details</button>
-            </div>
-            <div class="log-details">
-                <div class="collapsible-panel">
-                    <h3 class="collapsible-title">
-                        <span class="toggle-btn">[+]</span>
-                        <span>Headers</span>
-                    </h3>
-                    <div class="collapsible-content" style="display:none;">
-                        <pre>'.wp_kses_post($this->make_clickable(print_r($headers, true))).'</pre>
-                    </div>
-                </div>
-                <div class="collapsible-panel">
-                    <h3 class="collapsible-title">
-                        <span class="toggle-btn">[+]</span>
-                        <span>Parameters</span>
-                    </h3>
-                    <div class="collapsible-content" style="display:none;">
-                        <pre>'.wp_kses_post($this->make_clickable(print_r($params, true))).'</pre>
-                    </div>
-                </div>
-                <div class="collapsible-panel">
-                    <h3 class="collapsible-title">
-                        <span class="toggle-btn">[+]</span>
-                        <span>Response</span>
-                    </h3>
-                    <div class="collapsible-content" style="display:none;">
-                        <pre>'.wp_kses_post($this->make_clickable($log->response)).'</pre>
-                    </div>
-                </div>
-            </div>
-        </div>';
+        $direction_arrow = isset($log->direction) && $log->direction === 'outgoing' ? '↑' : '↓';
+        $html = '<div class="log-card ' . $status_class . '">'
+             . '<div class="log-summary">'
+             . '<div class="log-info">'
+             . '<span class="log-direction">' . $direction_arrow . '</span>'
+             . '<span class="log-time">' . mysql2date('M j, Y H:i:s', $log->time) . '</span>'
+             . '<span class="log-status">HTTP ' . $log->status_code . '</span>'
+             . '<span class="log-method">' . $log->method . '</span>'
+             . '<span class="log-endpoint"><a href="' . $log->endpoint . '" target="_blank">' . $log->endpoint . '</a></span>'
+             . '</div>'
+             . '<button class="log-toggle button button-small">Show Details</button>'
+             . '</div>'
+             . '<div class="log-details" style="display:none;">'
+             . '<div class="collapsible-panel">'
+             . '<h3 class="collapsible-title">'
+             . '<span class="toggle-btn">[+]</span>'
+             . '<span>Headers</span>'
+             . '</h3>'
+             . '<div class="collapsible-content" style="display:none;">'
+             . '<pre>' . wp_kses_post($this->make_clickable(print_r($headers, true))) . '</pre>'
+             . '</div>'
+             . '</div>'
+             . '<div class="collapsible-panel">'
+             . '<h3 class="collapsible-title">'
+             . '<span class="toggle-btn">[+]</span>'
+             . '<span>Parameters</span>'
+             . '</h3>'
+             . '<div class="collapsible-content" style="display:none;">'
+             . '<pre>' . wp_kses_post($this->make_clickable(print_r($params, true))) . '</pre>'
+             . '</div>'
+             . '</div>'
+             . '<div class="collapsible-panel">'
+             . '<h3 class="collapsible-title">'
+             . '<span class="toggle-btn">[+]</span>'
+             . '<span>Response</span>'
+             . '</h3>'
+             . '<div class="collapsible-content" style="display:none;">'
+             . '<pre>' . wp_kses_post($this->make_clickable($log->response)) . '</pre>'
+             . '</div>'
+             . '</div>'
+             . '</div>'
+             . '</div>';
+        
+        return $html;
     }
 
     private function make_clickable($text) {
@@ -966,11 +970,34 @@ class Webhook_Handler {
         $headers_array['Content-Type'] = 'application/json';
         $headers_array['User-Agent'] = 'WordPress/' . get_bloginfo('version') . '; ' . get_bloginfo('url');
 
+        $body = json_encode($data);
         $response = wp_remote_post($url, array(
             'headers' => $headers_array,
-            'body' => json_encode($data),
+            'body' => $body,
             'timeout' => 15
         ));
+
+        // Log the outgoing request
+        global $wpdb;
+        $status_code = is_wp_error($response) ? 500 : wp_remote_retrieve_response_code($response);
+        $response_body = is_wp_error($response) ? $response->get_error_message() : wp_remote_retrieve_body($response);
+
+        $wpdb->insert(
+            $wpdb->prefix . 'webhook_logs',
+            array(
+                'time' => current_time('mysql'),
+                'endpoint' => $url,
+                'method' => 'POST',
+                'headers' => json_encode($headers_array),
+                'params' => $body,
+                'files' => '',
+                'response' => $response_body,
+                'status_code' => $status_code,
+                'ip' => '',
+                'direction' => 'outgoing'
+            ),
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s')
+        );
 
         if (is_wp_error($response)) {
             error_log('Webhook error: ' . $response->get_error_message());
