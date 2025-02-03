@@ -1,0 +1,125 @@
+.wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.card {
+    width: 100%;
+    max-width: 1000px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.trigger-item {
+    width: 100%;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.trigger-item label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.trigger-item input[type="url"] {
+    width: calc(100% - 150px);
+    margin: 10px 0;
+}
+
+.trigger-item .toggle-headers {
+    margin-left: 10px;
+}
+
+.trigger-item .custom-headers {
+    margin-top: 10px;
+    width: 100%;
+}
+
+.trigger-item textarea {
+    width: 100%;
+    margin-top: 5px;
+    font-family: monospace;
+}
+
+/* Log viewer styles */
+.log-controls {
+    margin-bottom: 20px;
+}
+
+.log-item {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.log-details {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.log-details pre {
+    margin: 0;
+    padding: 10px;
+    background: #f5f5f5;
+    overflow-x: auto;
+}
+
+.log-toggle {
+    cursor: pointer;
+    padding: 5px 10px;
+    background: #f1f1f1;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.log-toggle:hover {
+    background: #e5e5e5;
+}
+
+/* Test mode styles */
+#testStatus {
+    margin-top: 15px;
+}
+
+#testResults {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f5f5f5;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.spinner {
+    display: none;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+.endpoint-doc {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.endpoint-doc pre {
+    margin: 0;
+    padding: 15px;
+    background: #f5f5f5;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}

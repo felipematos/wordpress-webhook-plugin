@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
- * Version: 1.9
+ * Version: 1.9.1
  * Author: Felipe Matos
  */
 
@@ -156,7 +156,7 @@ class Webhook_Handler {
         ?>
         <div class="wrap">
             <h2>Simple Webhook Handler Settings</h2>
-            <p>Plugin Version: 1.9</p>
+            <p>Plugin Version: <?php echo esc_html(get_option('webhook_plugin_version')); ?></p>
             
             <!-- Test Mode Section -->
             <div class="card">
@@ -379,11 +379,16 @@ class Webhook_Handler {
             '2.0.11'
         );
 
-        // Enqueue our plugin scripts
+        // Enqueue our plugin scripts and styles
+        wp_enqueue_script('webhook-logs', plugins_url('assets/logs.js', __FILE__), array('jquery'), '1.0', true);
         wp_enqueue_script('webhook-triggers', plugins_url('assets/triggers.js', __FILE__), array('jquery'), '1.0', true);
+        wp_enqueue_style('webhook-style', plugins_url('assets/style.css', __FILE__));
         wp_enqueue_style('webhook-triggers', plugins_url('assets/triggers.css', __FILE__));
 
         // Localize script with nonce
+        wp_localize_script('webhook-logs', 'webhook_settings', array(
+            'nonce' => wp_create_nonce('webhook_nonce')
+        ));
         wp_localize_script('webhook-triggers', 'webhook_settings', array(
             'nonce' => wp_create_nonce('webhook_nonce')
         ));

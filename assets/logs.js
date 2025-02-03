@@ -1,5 +1,4 @@
 jQuery(document).ready(function($) {
-    
     // Toggle log details
     $('#webhookLogsContainer').on('click', '.log-toggle', function(e) {
         e.preventDefault();
@@ -30,7 +29,7 @@ jQuery(document).ready(function($) {
             $refreshBtn.prop('disabled', true).after($spinner);
         }
         
-        return $.post(ajaxurl, {
+        $.post(ajaxurl, {
             action: 'get_logs',
             security: webhookLogs.nonce,
             page: page || 1
@@ -41,11 +40,10 @@ jQuery(document).ready(function($) {
                 initCollapsibleLogSections();
             } else {
                 console.error('Error loading logs:', response.data);
-                $container.html('Error loading logs);
-                     } 
-                     $refreshBtn.prop('disabled', false); 
-                     $spinner.remove(); });
+                $container.html('Error loading logs');
             }
+            $refreshBtn.prop('disabled', false);
+            $spinner.remove();
         }).fail(function(xhr) {
             console.error('Log request failed:', xhr.responseText);
             $container.html('<div class="notice notice-error">Request failed: ' + xhr.statusText + '</div>');
@@ -72,9 +70,6 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Initial load and setup auto-refresh
-    fetchLogs(1);
-    
     // Initial fetch
     fetchLogs(1);
 
