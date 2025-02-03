@@ -2,10 +2,12 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
- * Version: 1.8.19
+ * Version: 1.8.21
  * Author: Felipe Matos
  */
 
+const version = "1.8.21"; 
+ 
 class Webhook_Handler {
     public function __construct() {
         register_activation_hook(__FILE__, [$this, 'activate']);
@@ -134,6 +136,7 @@ class Webhook_Handler {
         ?>
         <div class="wrap">
             <h2>Simple Webhook Handler Settings</h2>
+            <p>Plugin Version: <?php echo version); ?></p>
             
             <!-- Test Mode Section -->
             <div class="card">
@@ -783,10 +786,24 @@ class Webhook_Handler {
     }
 
     public function log_invalid_json_request($result, $server, $request) {
-        error_log("log_invalid_json_request triggered");
-        if (is_wp_error($result) && isset($result->errors['rest_invalid_json'])) {
-            global $wpdb;
+        global $wpdb;
+        
+        // Log all requests that result in an error
+        if (is_wp_error($result)) {
             $raw_body = $request->get_body();
+            $error_codes = $result->get_error_codes();
+            $error_messages = [];
+            
+            // Collect all error messages
+            foreach ($error_codes as $code) {
+                $error_messages[$code] = $result->get_error_message($code);
+            }
+            
+            // For invalid JSON, try to capture the raw body
+            if (in_array('rest_invalid_json', $error_codes)) {
+                error_log('Invalid JSON received: ' . $raw_body);
+            }
+            
             $log_data = [
                 'time'       => current_time('mysql'),
                 'endpoint'   => $request->get_route(),
@@ -796,13 +813,25 @@ class Webhook_Handler {
                 'files'      => wp_json_encode($request->get_file_params(), JSON_UNESCAPED_SLASHES),
                 'ip'         => $_SERVER['REMOTE_ADDR'],
                 'status_code'=> isset($result->get_error_data()['status']) ? $result->get_error_data()['status'] : 400,
-                'response'   => wp_json_encode(['error' => $result->get_error_message()], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+                'response'   => wp_json_encode([
+                    'error_codes' => $error_codes,
+                    'error_messages' => $error_messages
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
             ];
-            $log_result = $wpdb->insert(
-                $wpdb->prefix . 'webhook_logs',
-                $log_data,
-                ['%s','%s','%s','%s','%s','%s','%d','%s']
-            );
+            
+            try {
+                $log_result = $wpdb->insert(
+                    $wpdb->prefix . 'webhook_logs',
+                    $log_data,
+                    ['%s','%s','%s','%s','%s','%s','%d','%s']
+                );
+                
+                if ($log_result === false) {
+                    error_log('Failed to log webhook error: ' . $wpdb->last_error);
+                }
+            } catch (Exception $e) {
+                error_log('Exception while logging webhook error: ' . $e->getMessage());
+            }
             if (false === $log_result) {
                 error_log('Webhook Logging Failed for invalid JSON: ' . $wpdb->last_error);
             }

@@ -37,10 +37,14 @@ jQuery(document).ready(function($) {
         }).done(function(response) {
             if(response.success) {
                 $container.html(response.data.html);
+                console.log('Logs HTML updated');
                 initCollapsibleLogSections();
             } else {
                 console.error('Error loading logs:', response.data);
-                $container.html('<div class="notice notice-error">Error loading logs</div>');
+                $container.html('Error loading logs);
+                     } 
+                     $refreshBtn.prop('disabled', false); 
+                     $spinner.remove(); });
             }
         }).fail(function(xhr) {
             console.error('Log request failed:', xhr.responseText);
@@ -270,36 +274,34 @@ jQuery(document).ready(function($) {
         });
     });
 
-    function initCollapsibleLogSections() {
-        const logEntries = document.querySelectorAll('.log-entry');
-        logEntries.forEach(entry => {
-            const sections = entry.querySelectorAll('.log-section');
-            sections.forEach(section => {
-                const title = section.querySelector('strong');
-                if (!title) return;
-                // Check if arrow already exists
-                let arrow = title.querySelector('span.collapsible-arrow');
-                if (!arrow) {
-                    arrow = document.createElement('span');
-                    arrow.classList.add('collapsible-arrow');
-                    arrow.textContent = '▶';
-                    arrow.style.marginLeft = '5px';
-                    title.appendChild(arrow);
-                }
-                title.style.cursor = 'pointer';
-                const content = section.querySelector('pre');
-                if (content) {
-                    content.style.display = 'none';
-                    // Remove previous event listener if any by cloning
-                    const newTitle = title.cloneNode(true);
-                    title.parentNode.replaceChild(newTitle, title);
-                    newTitle.addEventListener('click', () => {
-                        const isHidden = content.style.display === 'none';
-                        content.style.display = isHidden ? 'block' : 'none';
-                        arrow.textContent = isHidden ? '▼' : '▶';
-                    });
-                }
-            });
-        });
-    }
+    function initCollapsibleLogSections() { 
+        console.log('Initializing collapsible log sections'); 
+        const logEntries = document.querySelectorAll('.log-entry'); 
+        logEntries.forEach(entry => { 
+            const sections = entry.querySelectorAll('.log-section'); 
+            sections.forEach(section => { const title = section.querySelector('strong'); 
+                if (!title) return; 
+                // Check if arrow already exists 
+                let arrow = title.querySelector('span.collapsible-arrow'); 
+                if (!arrow) { 
+                    arrow = document.createElement('span'); 
+                    arrow.classList.add('collapsible-arrow'); 
+                    arrow.textContent = '▶'; 
+                    arrow.style.marginLeft = '5px'; 
+                    title.appendChild(arrow); } 
+                    title.style.cursor = 'pointer'; 
+                    const content = section.querySelector('pre'); 
+                    if (content) { content.style.display = 'none'; 
+                        // Remove any previous event listener by cloning the node 
+                        const newTitle = title.cloneNode(true); 
+                        title.parentNode.replaceChild(newTitle, title); 
+                        newTitle.addEventListener('click', () => { const isHidden = content.style.display === 'none'; 
+                            content.style.display = isHidden ? 'block' : 'none';
+                            arrow.textContent = isHidden ? '▼' : '▶'; 
+                            console.log('Toggled log section:', { expanded: !isHidden }); 
+                        });
+                     } });
+                     });
+                     }
+
 });
