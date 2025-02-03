@@ -4,6 +4,9 @@
     background: #f9f9f9;
     border: 1px solid #e5e5e5;
     border-radius: 4px;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .trigger-item label {
@@ -14,7 +17,9 @@
 
 .trigger-item input[type="url"] {
     margin: 10px 0;
-    width: calc(100% - 150px);
+    width: 100%;
+    max-width: calc(100% - 150px);
+    box-sizing: border-box;
 }
 
 .trigger-item .toggle-headers {

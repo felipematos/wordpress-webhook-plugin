@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.7
+ * Version: 1.9.8
  */
 
  
@@ -33,6 +33,13 @@ class Webhook_Handler {
         
         // Add plugin action links
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), [$this, 'plugin_settings_link']);
+
+        // Update version on plugin load
+        if (!function_exists('get_plugin_data')) {
+            require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        }
+        $plugin_data = get_plugin_data(__FILE__);
+        update_option('webhook_plugin_version', $plugin_data['Version']);
     }
 
     public function plugin_settings_link($links) {
@@ -961,6 +968,14 @@ class Webhook_Handler {
 
     public function activate() {
         $this->create_log_table();
+        
+        // Get plugin data to store version
+        if (!function_exists('get_plugin_data')) {
+            require_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        }
+        $plugin_data = get_plugin_data(__FILE__);
+        update_option('webhook_plugin_version', $plugin_data['Version']);
+        
         flush_rewrite_rules();
     }
 
