@@ -5,6 +5,7 @@
 2. Go to Settings → Webhook to configure:
    - Get an authentication key
    - Get endpoint URLs (default: /wp-json/webhook/v1/)
+   - Configure webhook triggers for WordPress events
 
 ## API Endpoints
 
@@ -149,3 +150,81 @@ curl -X POST \
   ...
 }
 ```
+
+## Webhook Triggers
+
+The plugin can send webhook notifications when specific WordPress events occur. Each trigger can be configured with its own destination URL and custom headers.
+
+### Available Triggers
+1. New post Created
+2. New post published
+3. New comment received
+
+1. **New Post Created**
+   - Triggered when a new blog post is created
+   - Payload includes: post ID, title, type, status, date, and author
+   ```json
+   {
+     "event": "post_created",
+     "post_id": 123,
+     "post_title": "My New Post",
+     "post_type": "post",
+     "post_status": "draft",
+     "post_date": "2025-02-03 16:52:31",
+     "post_author": 1
+   }
+   ```
+
+2. **Post Published**
+   - Triggered when a blog post changes status to 'published'
+   - Payload includes: post ID, title, type, date, author, and public URL
+   ```json
+   {
+     "event": "post_published",
+     "post_id": 123,
+     "post_title": "My New Post",
+     "post_type": "post",
+     "post_date": "2025-02-03 16:52:31",
+     "post_author": 1,
+     "post_url": "https://yoursite.com/my-new-post"
+   }
+   ```
+
+3. **New Comment**
+   - Triggered when a new comment is received on any post
+   - Payload includes: comment ID, post ID, author details, content, date, and status
+   ```json
+   {
+     "event": "new_comment",
+     "comment_id": 456,
+     "comment_post_id": 123,
+     "comment_author": "John Doe",
+     "comment_author_email": "john@example.com",
+     "comment_content": "Great post!",
+     "comment_date": "2025-02-03 16:52:31",
+     "comment_status": "1"
+   }
+   ```
+
+### Configuring Triggers
+
+1. Go to Settings → Webhook
+2. In the Triggers section, locate the trigger you want to configure
+3. Enable the trigger using the checkbox
+4. Enter the destination URL where the webhook should send the POST request
+5. (Optional) Click "Custom Headers" to add custom HTTP headers
+   - Headers should be in JSON format, e.g.:
+   ```json
+   {
+     "X-Auth-Key": "your-secret-key",
+     "Custom-Header": "custom-value"
+   }
+   ```
+
+### Notes
+- All webhook requests are sent as HTTP POST
+- The request body is JSON-encoded
+- Default headers include:
+  - `Content-Type: application/json`
+  - `User-Agent: WordPress/[version]; [site-url]`
+- Failed webhook attempts are logged and can be viewed in the Logs section

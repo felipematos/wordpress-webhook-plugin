@@ -2,11 +2,10 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
- * Version: 1.8.21
+ * Version: 1.9
  * Author: Felipe Matos
  */
 
-const version = "1.8.21"; 
  
 class Webhook_Handler {
     public function __construct() {
@@ -23,6 +22,14 @@ class Webhook_Handler {
         add_action('wp_ajax_get_logs', [$this, 'ajax_get_logs']);
         add_action('wp_ajax_clear_logs', [$this, 'clear_logs']);
         add_action('wp_ajax_refresh_auth_key', [$this, 'refresh_auth_key']);
+        add_action('wp_ajax_toggle_trigger', [$this, 'ajax_toggle_trigger']);
+        add_action('wp_ajax_save_trigger_url', [$this, 'ajax_save_trigger_url']);
+        add_action('wp_ajax_save_trigger_headers', [$this, 'ajax_save_trigger_headers']);
+        
+        // Add trigger hooks
+        add_action('save_post', [$this, 'handle_post_created'], 10, 3);
+        add_action('transition_post_status', [$this, 'handle_post_published'], 10, 3);
+        add_action('wp_insert_comment', [$this, 'handle_new_comment'], 10, 2);
         
         // Add plugin action links
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), [$this, 'plugin_settings_link']);
@@ -92,6 +99,19 @@ class Webhook_Handler {
         }
         register_setting('webhook_settings', 'webhook_auth_key');
         register_setting('webhook_settings', 'webhook_endpoint');
+        
+        // Register trigger settings
+        register_setting('webhook_settings', 'webhook_trigger_post_created');
+        register_setting('webhook_settings', 'webhook_trigger_post_created_url');
+        register_setting('webhook_settings', 'webhook_trigger_post_created_headers');
+        
+        register_setting('webhook_settings', 'webhook_trigger_post_published');
+        register_setting('webhook_settings', 'webhook_trigger_post_published_url');
+        register_setting('webhook_settings', 'webhook_trigger_post_published_headers');
+        
+        register_setting('webhook_settings', 'webhook_trigger_new_comment');
+        register_setting('webhook_settings', 'webhook_trigger_new_comment_url');
+        register_setting('webhook_settings', 'webhook_trigger_new_comment_headers');
 
         add_settings_section(
             'webhook_main',
@@ -136,7 +156,7 @@ class Webhook_Handler {
         ?>
         <div class="wrap">
             <h2>Simple Webhook Handler Settings</h2>
-            <p>Plugin Version: <?php echo version); ?></p>
+            <p>Plugin Version: 1.9</p>
             
             <!-- Test Mode Section -->
             <div class="card">
@@ -172,6 +192,60 @@ class Webhook_Handler {
                     <pre><code>".esc_html($docs)."</code></pre>
                 </div>";
                 ?>
+            </div>
+
+            <!-- Triggers Section -->
+            <div class="card">
+                <h3>Triggers</h3>
+                <p>Configure webhooks to be triggered on specific WordPress events.</p>
+                
+                <div class="trigger-item">
+                    <label>
+                        <input type="checkbox" name="webhook_trigger_post_created" 
+                            <?php checked(get_option('webhook_trigger_post_created'), 'on'); ?> />
+                        When a new blog post is created
+                    </label>
+                    <input type="url" name="webhook_trigger_post_created_url" 
+                        value="<?php echo esc_attr(get_option('webhook_trigger_post_created_url')); ?>" 
+                        placeholder="Enter webhook URL" class="regular-text" />
+                    <button type="button" class="button toggle-headers" data-trigger="post_created">Custom Headers</button>
+                    <div class="custom-headers" style="display:none;">
+                        <textarea name="webhook_trigger_post_created_headers" rows="3" class="large-text" 
+                            placeholder='Enter headers in JSON format, e.g: {"X-Auth-Key": "your-key"}'><?php echo esc_textarea(get_option('webhook_trigger_post_created_headers')); ?></textarea>
+                    </div>
+                </div>
+
+                <div class="trigger-item">
+                    <label>
+                        <input type="checkbox" name="webhook_trigger_post_published" 
+                            <?php checked(get_option('webhook_trigger_post_published'), 'on'); ?> />
+                        When a blog post is published
+                    </label>
+                    <input type="url" name="webhook_trigger_post_published_url" 
+                        value="<?php echo esc_attr(get_option('webhook_trigger_post_published_url')); ?>" 
+                        placeholder="Enter webhook URL" class="regular-text" />
+                    <button type="button" class="button toggle-headers" data-trigger="post_published">Custom Headers</button>
+                    <div class="custom-headers" style="display:none;">
+                        <textarea name="webhook_trigger_post_published_headers" rows="3" class="large-text" 
+                            placeholder='Enter headers in JSON format, e.g: {"X-Auth-Key": "your-key"}'><?php echo esc_textarea(get_option('webhook_trigger_post_published_headers')); ?></textarea>
+                    </div>
+                </div>
+
+                <div class="trigger-item">
+                    <label>
+                        <input type="checkbox" name="webhook_trigger_new_comment" 
+                            <?php checked(get_option('webhook_trigger_new_comment'), 'on'); ?> />
+                        When a new comment is received
+                    </label>
+                    <input type="url" name="webhook_trigger_new_comment_url" 
+                        value="<?php echo esc_attr(get_option('webhook_trigger_new_comment_url')); ?>" 
+                        placeholder="Enter webhook URL" class="regular-text" />
+                    <button type="button" class="button toggle-headers" data-trigger="new_comment">Custom Headers</button>
+                    <div class="custom-headers" style="display:none;">
+                        <textarea name="webhook_trigger_new_comment_headers" rows="3" class="large-text" 
+                            placeholder='Enter headers in JSON format, e.g: {"X-Auth-Key": "your-key"}'><?php echo esc_textarea(get_option('webhook_trigger_new_comment_headers')); ?></textarea>
+                    </div>
+                </div>
             </div>
 
             <!-- Log viewer section -->
@@ -292,13 +366,27 @@ class Webhook_Handler {
         <?php
     }
 
-    public function enqueue_assets() {
+    public function enqueue_assets($hook) {
+        if ('settings_page_webhook-settings' !== $hook) {
+            return;
+        }
+
+        // Enqueue clipboard.js
         wp_enqueue_script(
             'clipboard', 
             'https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js',
             [],
             '2.0.11'
         );
+
+        // Enqueue our plugin scripts
+        wp_enqueue_script('webhook-triggers', plugins_url('assets/triggers.js', __FILE__), array('jquery'), '1.0', true);
+        wp_enqueue_style('webhook-triggers', plugins_url('assets/triggers.css', __FILE__));
+
+        // Localize script with nonce
+        wp_localize_script('webhook-triggers', 'webhook_settings', array(
+            'nonce' => wp_create_nonce('webhook_nonce')
+        ));
         
         wp_add_inline_script('clipboard', "document.addEventListener('DOMContentLoaded', function() { new ClipboardJS('.copy-key, .copy-url', { text: function(trigger) { return trigger.dataset.clipboardTarget ? document.querySelector(trigger.dataset.clipboardTarget).value : trigger.dataset.clipboardText; }}); });");
         
@@ -846,6 +934,139 @@ class Webhook_Handler {
 
     public function deactivate() {
         flush_rewrite_rules();
+    }
+
+    private function send_webhook($url, $data, $headers = '{}') {
+        if (empty($url)) return false;
+
+        $headers_array = json_decode($headers, true);
+        if (!is_array($headers_array)) $headers_array = array();
+
+        // Add default headers
+        $headers_array['Content-Type'] = 'application/json';
+        $headers_array['User-Agent'] = 'WordPress/' . get_bloginfo('version') . '; ' . get_bloginfo('url');
+
+        $response = wp_remote_post($url, array(
+            'headers' => $headers_array,
+            'body' => json_encode($data),
+            'timeout' => 15
+        ));
+
+        if (is_wp_error($response)) {
+            error_log('Webhook error: ' . $response->get_error_message());
+            return false;
+        }
+
+        return true;
+    }
+
+    public function handle_post_created($post_id, $post, $update) {
+        if (!get_option('webhook_trigger_post_created') || $update) return;
+        if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) return;
+
+        $data = array(
+            'event' => 'post_created',
+            'post_id' => $post_id,
+            'post_title' => $post->post_title,
+            'post_type' => $post->post_type,
+            'post_status' => $post->post_status,
+            'post_date' => $post->post_date,
+            'post_author' => $post->post_author
+        );
+
+        $this->send_webhook(
+            get_option('webhook_trigger_post_created_url'),
+            $data,
+            get_option('webhook_trigger_post_created_headers')
+        );
+    }
+
+    public function handle_post_published($new_status, $old_status, $post) {
+        if (!get_option('webhook_trigger_post_published')) return;
+        if ($new_status !== 'publish' || $old_status === 'publish') return;
+        if (wp_is_post_revision($post->ID) || wp_is_post_autosave($post->ID)) return;
+
+        $data = array(
+            'event' => 'post_published',
+            'post_id' => $post->ID,
+            'post_title' => $post->post_title,
+            'post_type' => $post->post_type,
+            'post_date' => $post->post_date,
+            'post_author' => $post->post_author,
+            'post_url' => get_permalink($post->ID)
+        );
+
+        $this->send_webhook(
+            get_option('webhook_trigger_post_published_url'),
+            $data,
+            get_option('webhook_trigger_post_published_headers')
+        );
+    }
+
+    public function handle_new_comment($comment_id, $comment) {
+        if (!get_option('webhook_trigger_new_comment')) return;
+
+        $data = array(
+            'event' => 'new_comment',
+            'comment_id' => $comment_id,
+            'comment_post_id' => $comment->comment_post_ID,
+            'comment_author' => $comment->comment_author,
+            'comment_author_email' => $comment->comment_author_email,
+            'comment_content' => $comment->comment_content,
+            'comment_date' => $comment->comment_date,
+            'comment_status' => $comment->comment_approved
+        );
+
+        $this->send_webhook(
+            get_option('webhook_trigger_new_comment_url'),
+            $data,
+            get_option('webhook_trigger_new_comment_headers')
+        );
+    }
+
+    public function ajax_toggle_trigger() {
+        check_ajax_referer('webhook_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $trigger = sanitize_text_field($_POST['trigger']);
+        $enabled = sanitize_text_field($_POST['enabled']);
+
+        update_option($trigger, $enabled);
+        wp_send_json_success();
+    }
+
+    public function ajax_save_trigger_url() {
+        check_ajax_referer('webhook_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $trigger = sanitize_text_field($_POST['trigger']);
+        $url = esc_url_raw($_POST['url']);
+
+        update_option($trigger . '_url', $url);
+        wp_send_json_success();
+    }
+
+    public function ajax_save_trigger_headers() {
+        check_ajax_referer('webhook_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $trigger = sanitize_text_field($_POST['trigger']);
+        $headers = sanitize_textarea_field($_POST['headers']);
+
+        // Validate JSON
+        json_decode($headers);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error('Invalid JSON format');
+        }
+
+        update_option($trigger . '_headers', $headers);
+        wp_send_json_success();
     }
 }
 

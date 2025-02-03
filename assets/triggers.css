@@ -1,0 +1,32 @@
+.trigger-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.trigger-item label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.trigger-item input[type="url"] {
+    margin: 10px 0;
+    width: calc(100% - 150px);
+}
+
+.trigger-item .toggle-headers {
+    margin-left: 10px;
+}
+
+.trigger-item .custom-headers {
+    margin-top: 10px;
+}
+
+.trigger-item textarea {
+    width: 100%;
+    margin-top: 5px;
+    font-family: monospace;
+}
