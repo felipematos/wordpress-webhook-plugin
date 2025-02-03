@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
- * Version: 1.9.1
+ * Version: 1.9.2
  * Author: Felipe Matos
  */
 
@@ -851,20 +851,35 @@ class Webhook_Handler {
                     <span class="log-method">'.$log->method.'</span>
                     <span class="log-endpoint"><a href="'.$log->endpoint.'" target="_blank">'.$log->endpoint.'</a></span>
                 </div>
-                <button class="log-toggle button button-small">Details</button>
+                <button class="log-toggle button button-small">Show Details</button>
             </div>
             <div class="log-details">
-                <div class="log-section">
-                    <strong>Headers:</strong> 
-                    <pre>'.wp_kses_post($this->make_clickable(print_r($headers, true))).'</pre>
+                <div class="collapsible-panel">
+                    <h3 class="collapsible-title">
+                        <span class="toggle-btn">[+]</span>
+                        <span>Headers</span>
+                    </h3>
+                    <div class="collapsible-content" style="display:none;">
+                        <pre>'.wp_kses_post($this->make_clickable(print_r($headers, true))).'</pre>
+                    </div>
                 </div>
-            <div class="log-section">
-                    <strong>Parameters:</strong>
-                    <pre>'.wp_kses_post($this->make_clickable(print_r($params, true))).'</pre>
+                <div class="collapsible-panel">
+                    <h3 class="collapsible-title">
+                        <span class="toggle-btn">[+]</span>
+                        <span>Parameters</span>
+                    </h3>
+                    <div class="collapsible-content" style="display:none;">
+                        <pre>'.wp_kses_post($this->make_clickable(print_r($params, true))).'</pre>
+                    </div>
                 </div>
-                <div class="log-section">
-                    <strong>Response:</strong> 
-                    <pre>'.wp_kses_post($this->make_clickable($log->response)).'</pre>
+                <div class="collapsible-panel">
+                    <h3 class="collapsible-title">
+                        <span class="toggle-btn">[+]</span>
+                        <span>Response</span>
+                    </h3>
+                    <div class="collapsible-content" style="display:none;">
+                        <pre>'.wp_kses_post($this->make_clickable($log->response)).'</pre>
+                    </div>
                 </div>
             </div>
         </div>';

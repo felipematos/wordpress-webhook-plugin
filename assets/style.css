@@ -79,6 +79,109 @@
     overflow-x: auto;
 }
 
+/* Log Card Styles */
+.log-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.log-summary {
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e2e4e7;
+}
+
+.log-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.log-time {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.log-status {
+    font-weight: 600;
+}
+
+.log-method {
+    background: #e5e5e5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.log-endpoint {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.log-details {
+    padding: 15px;
+    display: none;
+}
+
+/* Collapsible Panel Styles */
+.collapsible-panel {
+    margin-bottom: 10px;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.collapsible-title {
+    margin: 0;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e5e5e5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.collapsible-title:hover {
+    background: #f0f0f1;
+}
+
+.toggle-btn {
+    margin-right: 8px;
+    color: #666;
+    font-family: monospace;
+    font-weight: normal;
+}
+
+.collapsible-content {
+    padding: 15px;
+    background: #fff;
+}
+
+.collapsible-content pre {
+    margin: 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Status Colors */
+.status-2 .log-status { color: #46b450; }
+.status-3 .log-status { color: #ffb900; }
+.status-4 .log-status,
+.status-5 .log-status { color: #dc3232; }
+
 .log-toggle {
     cursor: pointer;
     padding: 5px 10px;

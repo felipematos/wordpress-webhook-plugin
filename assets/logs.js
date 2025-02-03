@@ -10,8 +10,22 @@ jQuery(document).ready(function($) {
         
         $details.slideToggle(200, function() {
             const isVisible = $details.is(':visible');
-            $btn.text(isVisible ? 'Hide' : 'Details');
-            $card.toggleClass('expanded', isVisible);
+            $btn.text(isVisible ? 'Hide Details' : 'Show Details');
+        });
+    });
+
+    // Toggle collapsible sections
+    $('#webhookLogsContainer').on('click', '.collapsible-title', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const $title = $(this);
+        const $content = $title.next('.collapsible-content');
+        const $toggleBtn = $title.find('.toggle-btn');
+        
+        $content.slideToggle(200, function() {
+            const isVisible = $content.is(':visible');
+            $toggleBtn.text(isVisible ? '[-]' : '[+]');
         });
     });
     
