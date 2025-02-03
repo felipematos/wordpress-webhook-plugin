@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
- * Version: 1.8.18
+ * Version: 1.8.19
  * Author: Felipe Matos
  */
 
@@ -783,6 +783,7 @@ class Webhook_Handler {
     }
 
     public function log_invalid_json_request($result, $server, $request) {
+        error_log("log_invalid_json_request triggered");
         if (is_wp_error($result) && isset($result->errors['rest_invalid_json'])) {
             global $wpdb;
             $raw_body = $request->get_body();
