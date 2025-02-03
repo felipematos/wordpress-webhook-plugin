@@ -131,8 +131,14 @@
 }
 
 .log-details {
-    padding: 15px;
     display: none;
+    padding: 15px;
+    background: #fff;
+    border-top: 1px solid #e2e4e7;
+}
+
+.log-details.expanded {
+    display: block;
 }
 
 /* Collapsible Panel Styles */
@@ -167,8 +173,14 @@
 }
 
 .collapsible-content {
+    display: none;
     padding: 15px;
     background: #fff;
+    border-top: 1px solid #e2e4e7;
+}
+
+.collapsible-content.expanded {
+    display: block;
 }
 
 .collapsible-content pre {

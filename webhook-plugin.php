@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.4
+ * Version: 1.9.7
  */
 
  
@@ -251,7 +251,7 @@ class Webhook_Handler {
 
             <!-- Log viewer section -->
             <div class="card">
-                <h3>Request Logs</h3>
+                <h3>Recent Logs</h3>
                 <div class="log-controls">
                     <button class="button" id="refreshLogs">Refresh</button>
                     <button class="button button-danger" id="clearLogs">Clear All Logs</button>
@@ -862,7 +862,7 @@ class Webhook_Handler {
              . '<span>Headers</span>'
              . '</h3>'
              . '<div class="collapsible-content" style="display:none;">'
-             . '<pre>' . wp_kses_post($this->make_clickable(print_r($headers, true))) . '</pre>'
+             . '<pre>' . wp_kses_post($this->make_clickable(json_encode($headers, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))) . '</pre>'
              . '</div>'
              . '</div>'
              . '<div class="collapsible-panel">'
@@ -871,7 +871,7 @@ class Webhook_Handler {
              . '<span>Parameters</span>'
              . '</h3>'
              . '<div class="collapsible-content" style="display:none;">'
-             . '<pre>' . wp_kses_post($this->make_clickable(print_r($params, true))) . '</pre>'
+             . '<pre>' . wp_kses_post($this->make_clickable(json_encode($params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))) . '</pre>'
              . '</div>'
              . '</div>'
              . '<div class="collapsible-panel">'
@@ -890,8 +890,16 @@ class Webhook_Handler {
     }
 
     private function make_clickable($text) {
+        // First try to decode if it's a JSON string
+        $decoded = json_decode($text, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            // If it's JSON, encode it back with pretty print and then make links clickable
+            $text = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }
+
+        // Make URLs clickable, being careful with JSON formatting
         return preg_replace(
-            '/(https?:\/\/\S+)/',
+            '/"?(https?:\/\/[^"\s]+)"?/',
             '<a href="$1" target="_blank">$1</a>',
             $text
         );

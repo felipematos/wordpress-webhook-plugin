@@ -1,4 +1,7 @@
 jQuery(document).ready(function($) {
+    // Remove any existing event handlers
+    $('#webhookLogsContainer').off('click');
+
     // Toggle log details
     $('#webhookLogsContainer').on('click', '.log-toggle', function(e) {
         e.preventDefault();
@@ -6,13 +9,21 @@ jQuery(document).ready(function($) {
         
         const $btn = $(this);
         const $details = $btn.closest('.log-card').find('.log-details');
+        const isVisible = $details.is(':visible');
         
-        if ($details.is(':visible')) {
-            $details.slideUp(200);
+        console.log('Button clicked:', {
+            isVisible,
+            buttonText: $btn.text(),
+            detailsCount: $details.length,
+            detailsDisplay: $details.css('display')
+        });
+
+        if (isVisible) {
             $btn.text('Show Details');
+            $details.hide().removeClass('expanded');
         } else {
-            $details.slideDown(200);
             $btn.text('Hide Details');
+            $details.show().addClass('expanded');
         }
     });
 
@@ -24,19 +35,21 @@ jQuery(document).ready(function($) {
         const $title = $(this);
         const $content = $title.next('.collapsible-content');
         const $toggleBtn = $title.find('.toggle-btn');
+        const isVisible = $content.is(':visible');
         
-        $content.slideToggle(200, function() {
-            const isVisible = $content.is(':visible');
-            $toggleBtn.text(isVisible ? '[-]' : '[+]');
+        console.log('Collapsible clicked:', {
+            isVisible,
+            toggleText: $toggleBtn.text()
         });
-    });
 
-    // Make sure details are hidden initially
-    $('.log-details').hide();
-    $('.collapsible-content').hide();
-    
-    // Make sure details are hidden initially
-    $('.log-details').hide();
+        if (isVisible) {
+            $toggleBtn.text('[+]');
+            $content.hide().removeClass('expanded');
+        } else {
+            $toggleBtn.text('[-]');
+            $content.show().addClass('expanded');
+        }
+    });
 
     // Fetch logs function
     function fetchLogs(page) {
