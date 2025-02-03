@@ -183,9 +183,14 @@ jQuery(document).ready(function($) {
         toggleBtn.textContent = collapsed ? '[+]' : '[-]';
         toggleBtn.style.marginRight = '10px';
         
-        // Append the toggle button and title text to the panel title
+        // Create a separate span for the title text
+        const titleSpan = document.createElement('span');
+        titleSpan.classList.add('collapsible-text');
+        titleSpan.textContent = title;
+        
+        // Append the toggle button and title span to the panel title
         panelTitle.appendChild(toggleBtn);
-        panelTitle.appendChild(document.createTextNode(title));
+        panelTitle.appendChild(titleSpan);
         
         const panelContent = document.createElement('div');
         panelContent.classList.add('collapsible-content');

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Simple Webhook Handler
- * Description: Custom API-Rest webhook endpoint for media upload and post creation
- * Version: 1.8.15
+ * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
+ * Version: 1.8.18
  * Author: Felipe Matos
  */
 
@@ -11,6 +11,7 @@ class Webhook_Handler {
         register_activation_hook(__FILE__, [$this, 'activate']);
         register_deactivation_hook(__FILE__, [$this, 'deactivate']);
         add_action('rest_api_init', [$this, 'register_routes']);
+        add_filter('rest_pre_dispatch', [$this, 'log_invalid_json_request'], 10, 3);
         add_action('admin_menu', [$this, 'add_settings_page']);
         add_action('admin_init', [$this, 'register_settings']);
         add_action('wp_ajax_start_webhook_test', [$this, 'start_test_mode']);
@@ -92,7 +93,7 @@ class Webhook_Handler {
 
         add_settings_section(
             'webhook_main',
-            'Authentication Settings',
+            'Webhook Settings',
             null,
             'webhook-settings'
         );
@@ -109,7 +110,7 @@ class Webhook_Handler {
             'API Auth Key',
             [$this, 'auth_key_field'],
             'webhook-settings',
-            'webhook_main'
+            'webhook_security'
         );
 
         add_settings_field(
@@ -132,7 +133,7 @@ class Webhook_Handler {
     public function render_settings_page() {
         ?>
         <div class="wrap">
-            <h2>Webhook Settings</h2>
+            <h2>Simple Webhook Handler Settings</h2>
             
             <!-- Test Mode Section -->
             <div class="card">
@@ -186,16 +187,6 @@ class Webhook_Handler {
                 settings_fields('webhook_settings');
                 do_settings_sections('webhook-settings');
                 ?>
-                <table class="form-table">
-                    <tr valign="top">
-                        <th scope="row">API Auth Key</th>
-                        <td>
-                            <input type="text" id="webhook_auth_key" name="webhook_auth_key" value="<?php echo esc_attr(get_option('webhook_auth_key')); ?>" readonly />
-                            <button type="button" id="refresh-auth-key" class="button"><span class="dashicons dashicons-update"></span></button>
-                            <button type="button" id="copy-auth-key" class="button"><span class="dashicons dashicons-admin-page"></span></button>
-                        </td>
-                    </tr>
-                </table>
             </form>
         </div>
         
@@ -789,6 +780,33 @@ class Webhook_Handler {
             '<a href="$1" target="_blank">$1</a>',
             $text
         );
+    }
+
+    public function log_invalid_json_request($result, $server, $request) {
+        if (is_wp_error($result) && isset($result->errors['rest_invalid_json'])) {
+            global $wpdb;
+            $raw_body = $request->get_body();
+            $log_data = [
+                'time'       => current_time('mysql'),
+                'endpoint'   => $request->get_route(),
+                'method'     => $request->get_method(),
+                'headers'    => wp_json_encode($request->get_headers(), JSON_UNESCAPED_SLASHES),
+                'params'     => $raw_body,
+                'files'      => wp_json_encode($request->get_file_params(), JSON_UNESCAPED_SLASHES),
+                'ip'         => $_SERVER['REMOTE_ADDR'],
+                'status_code'=> isset($result->get_error_data()['status']) ? $result->get_error_data()['status'] : 400,
+                'response'   => wp_json_encode(['error' => $result->get_error_message()], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+            ];
+            $log_result = $wpdb->insert(
+                $wpdb->prefix . 'webhook_logs',
+                $log_data,
+                ['%s','%s','%s','%s','%s','%s','%d','%s']
+            );
+            if (false === $log_result) {
+                error_log('Webhook Logging Failed for invalid JSON: ' . $wpdb->last_error);
+            }
+        }
+        return $result;
     }
 
     public function activate() {
