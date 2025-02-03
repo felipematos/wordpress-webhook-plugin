@@ -400,9 +400,9 @@ class Webhook_Handler {
     public function endpoint_url_fields() {
         $base_url = rest_url('webhook/v1/');
         $endpoints = [
-            'auth' => 'Authentication',
             'upload' => 'Media Upload',
-            'create-post' => 'Create Post'
+            'create-post' => 'Create Post',
+            'get-post' => 'Get Post'
         ];
 
         echo "<table class='form-table'><tbody>";
@@ -426,6 +426,16 @@ class Webhook_Handler {
     public function rate_limit_field() {
         echo "<p class='description'>Rate limiting is enabled by default. Maximum 5 requests per minute.</p>";
     }
+
+    public function get_post($request) {    
+        // Validate that postId is provided 
+        if ( empty( $request['postId'] ) ) { 
+            return new WP_Error('missing_postId', 'Post ID is required', ['status' => 400]); }
+            $postId = absint( $request['postId'] ); 
+            $post = get_post( $postId ); 
+            if ( !$post ) { 
+                return new WP_Error('not_found', 'Post not found', ['status' => 404]); } 
+                return (array) $post; }
 
     private function get_auth_key() {
         return get_option('webhook_auth_key');
@@ -540,14 +550,13 @@ class Webhook_Handler {
     
         $action = $request['action'];
         
-        switch($action) {
-            case 'upload':
-                return $this->handle_upload($request);
-            case 'create-post':
-                return $this->create_post($request);
-            default:
-                return new WP_Error('invalid_action', 'Invalid action specified', ['status' => 400]);
+        switch ( $request['action'] ) { 
+            case 'upload': return $this->handle_upload($request); 
+            case 'create-post': return $this->create_post($request); 
+            case 'get-post': return $this->get_post($request); 
+            default: return new WP_Error('invalid_action', 'Invalid action specified', ['status' => 400]); 
         }
+
     }
 
     private function handle_upload($request) {

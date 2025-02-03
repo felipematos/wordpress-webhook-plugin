@@ -110,3 +110,42 @@ curl -X POST \
   "success": false,
   "error": "Invalid authentication"
 }
+```
+
+### Endpoint: get-post
+
+**Description:** Retrieves all data for a specific post.
+
+**Endpoint:** `POST /wp-json/webhook/v1/get-post`
+
+```bash
+curl -X POST \
+  -H "X-Auth-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "postId": 123
+  }' \
+  https://yoursite.com/wp-json/webhook/v1/get-post
+```
+
+
+**Example Request Body:**
+```json
+{
+  "postId": 123
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "ID": 123,
+  "post_author": "1",
+  "post_date": "2025-02-03 10:00:00",
+  "post_title": "Sample Post",
+  "post_content": "This is the post content.",
+  "post_status": "publish",
+  ...
+}
+```
