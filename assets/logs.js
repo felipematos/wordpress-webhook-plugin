@@ -200,72 +200,74 @@ function renderLog(log) {
     return logContainer;
 }
 
-    // Create collapsible panel function
-    function createCollapsiblePanel(title, content, collapsed = false) {
-        const panel = document.createElement('div');
-        panel.classList.add('collapsible-panel');
-        
-        const panelTitle = document.createElement('h3');
-        panelTitle.classList.add('collapsible-title');
-        panelTitle.style.cursor = 'pointer';
-        
-        // Create the toggle button element
-        const toggleBtn = document.createElement('span');
-        toggleBtn.classList.add('toggle-btn');
-        toggleBtn.textContent = collapsed ? '[+]' : '[-]';
-        toggleBtn.style.marginRight = '10px';
-        
-        // Create a separate span for the title text
-        const titleSpan = document.createElement('span');
-        titleSpan.classList.add('collapsible-text');
-        titleSpan.textContent = title;
-        
-        // Append the toggle button and title span to the panel title
-        panelTitle.appendChild(toggleBtn);
-        panelTitle.appendChild(titleSpan);
-        
-        const panelContent = document.createElement('div');
-        panelContent.classList.add('collapsible-content');
+function createCollapsiblePanel(title, content, collapsed = false) {
+    const panel = document.createElement('div');
+    panel.classList.add('collapsible-panel');
 
-        // Pre-treat values in HTML code
-        let encodedContent = document.createElement('pre');
+    const panelTitle = document.createElement('h3');
+    panelTitle.classList.add('collapsible-title');
+    panelTitle.style.cursor = 'pointer';
 
-        // Syntax highlighting for JSON and HTML
-        if (typeof content === 'string') {
-            if (isJsonString(content)) {
-                encodedContent.innerHTML = syntaxHighlight(JSON.stringify(JSON.parse(content), null, 2));
-            } else if (isHTMLString(content)) {
-                encodedContent.innerHTML = syntaxHighlight(content);
-            } else {
-                encodedContent.textContent = content;
-            }
-        } else if (typeof content === 'object') {
-            encodedContent.textContent = JSON.stringify(content, null, 2);
+    // Create the toggle button element
+    const toggleBtn = document.createElement('span');
+    toggleBtn.classList.add('toggle-btn');
+    toggleBtn.textContent = collapsed ? '[+]' : '[-]';
+    toggleBtn.style.marginRight = '10px';
+
+    // Create a separate span for the title text
+    const titleSpan = document.createElement('span');
+    titleSpan.classList.add('collapsible-text');
+    titleSpan.textContent = title;
+
+    // Append the toggle button and title span to the panel title
+    panelTitle.appendChild(toggleBtn);
+    panelTitle.appendChild(titleSpan);
+
+    const panelContent = document.createElement('div');
+    panelContent.classList.add('collapsible-content');
+
+    // Pre-treat values in HTML code
+    let encodedContent = document.createElement('pre');
+
+    // Syntax highlighting for JSON and HTML
+    if (typeof content === 'string') {
+        console.log('isHTMLString(content):', isHTMLString(content)); // Add this line
+        console.log('isJsonString(content):', isJsonString(content)); // Add this line
+        if (isJsonString(content)) {
+            encodedContent.textContent = JSON.stringify(JSON.parse(content), null, 2);
+            encodedContent.innerHTML = syntaxHighlight(encodedContent.textContent);
+        } else if (isHTMLString(content)) {
+            encodedContent.textContent = content;
+            encodedContent.innerHTML = syntaxHighlight(encodedContent.textContent);
         } else {
-            encodedContent.textContent = String(content);
+            encodedContent.textContent = content;
         }
-
-        panelContent.appendChild(encodedContent);
-
-        panelContent.innerHTML = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-        panelContent.style.display = collapsed ? 'none' : 'block';
-        
-        // Single event listener on the panel title to toggle the content display
-        panelTitle.addEventListener('click', function() {
-            if (panelContent.style.display === 'none') {
-                panelContent.style.display = 'block';
-                toggleBtn.textContent = '[-]';
-            } else {
-                panelContent.style.display = 'none';
-                toggleBtn.textContent = '[+]';
-            }
-        });
-        
-        panel.appendChild(panelTitle);
-        panel.appendChild(panelContent);
-        
-        return panel;
+    } else if (typeof content === 'object') {
+        encodedContent.textContent = JSON.stringify(content, null, 2);
+        encodedContent.innerHTML = syntaxHighlight(encodedContent.textContent);
+    } else {
+        encodedContent.textContent = String(content);
     }
+
+    panelContent.appendChild(encodedContent);
+    panelContent.style.display = collapsed ? 'none' : 'block';
+
+    // Single event listener on the panel title to toggle the content display
+    panelTitle.addEventListener('click', function() {
+        if (panelContent.style.display === 'none') {
+            panelContent.style.display = 'block';
+            toggleBtn.textContent = '[-]';
+        } else {
+            panelContent.style.display = 'none';
+            toggleBtn.textContent = '[+]';
+        }
+    });
+
+    panel.appendChild(panelTitle);
+    panel.appendChild(panelContent);
+
+    return panel;
+}
 
     // Helper function to check if a string is JSON
 function isJsonString(str) {
@@ -286,6 +288,7 @@ function isHTMLString(str) {
 // Helper function to apply syntax highlighting
 function syntaxHighlight(json) {
     json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    json = json.replace(/(https?:\/\/[^\s"]+)/g, '<a href="$1" target="_blank">$1</a>'); // Make URLs clickable
     return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
         let cls = 'number';
         if (/^"/.test(match)) {
@@ -384,34 +387,37 @@ function syntaxHighlight(json) {
         });
     });
 
-    function initCollapsibleLogSections() { 
-        console.log('Initializing collapsible log sections'); 
-        const logEntries = document.querySelectorAll('.log-entry'); 
-        logEntries.forEach(entry => { 
-            const sections = entry.querySelectorAll('.log-section'); 
-            sections.forEach(section => { const title = section.querySelector('strong'); 
-                if (!title) return; 
-                // Check if arrow already exists 
-                let arrow = title.querySelector('span.collapsible-arrow'); 
-                if (!arrow) { 
-                    arrow = document.createElement('span'); 
-                    arrow.classList.add('collapsible-arrow'); 
-                    arrow.textContent = '▶'; 
-                    arrow.style.marginLeft = '5px'; 
-                    title.appendChild(arrow); } 
-                    title.style.cursor = 'pointer'; 
-                    const content = section.querySelector('pre'); 
-                    if (content) { content.style.display = 'none'; 
-                        // Remove any previous event listener by cloning the node 
-                        const newTitle = title.cloneNode(true); 
-                        title.parentNode.replaceChild(newTitle, title); 
-                        newTitle.addEventListener('click', () => { const isHidden = content.style.display === 'none'; 
-                            content.style.display = isHidden ? 'block' : 'none';
-                            arrow.textContent = isHidden ? '▼' : '▶'; 
-                            console.log('Toggled log section:', { expanded: !isHidden }); 
-                        });
-                     } });
-                     });
-                     }
+    function initCollapsibleLogSections() {
+        console.log('Initializing collapsible log sections');
+        const logEntries = document.querySelectorAll('.log-entry');
+        logEntries.forEach(entry => {
+            const sections = entry.querySelectorAll('.log-section');
+            sections.forEach(section => {
+                const title = section.querySelector('strong');
+                if (!title) return;
+                // Check if arrow already exists
+                let arrow = title.querySelector('span.collapsible-arrow');
+                if (!arrow) {
+                    arrow = document.createElement('span');
+                    arrow.classList.add('collapsible-arrow');
+                    arrow.textContent = '▶';
+                    arrow.style.marginLeft = '5px';
+                    title.appendChild(arrow);
+                }
+                title.style.cursor = 'pointer';
+                const content = section.querySelector('pre');
+                if (content) {
+                    content.style.display = 'none';
+                    // Directly add event listener to the title
+                    title.addEventListener('click', () => {
+                        const isHidden = content.style.display === 'none';
+                        content.style.display = isHidden ? 'block' : 'none';
+                        arrow.textContent = isHidden ? '▼' : '▶';
+                        console.log('Toggled log section:', { expanded: !isHidden });
+                    });
+                }
+            });
+        });
+    }
 
 });
