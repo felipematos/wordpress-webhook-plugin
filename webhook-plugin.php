@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.9
+ * Version: 1.9.10
  */
 
  
@@ -732,14 +732,44 @@ class Webhook_Handler {
 
         // Handle categories
         if (!empty($request['categories']) && is_array($request['categories'])) {
-            $categories = array_map('intval', $request['categories']);
-            wp_set_post_categories($post_id, $categories);
+            $category_ids = [];
+            foreach ($request['categories'] as $category_data) {
+                if (is_numeric($category_data)) {
+                    $category_ids[] = intval($category_data);
+                } else {
+                    $category = get_term_by('name', $category_data, 'category');
+                    if ($category) {
+                        $category_ids[] = intval($category->term_id);
+                    } else {
+                        $new_category = wp_insert_term($category_data, 'category');
+                        if (!is_wp_error($new_category)) {
+                            $category_ids[] = intval($new_category['term_id']);
+                        }
+                    }
+                }
+            }
+            wp_set_post_categories($post_id, $category_ids);
         }
 
         // Handle tags
         if (!empty($request['tags']) && is_array($request['tags'])) {
-            $tags = array_map('sanitize_text_field', $request['tags']);
-            wp_set_post_tags($post_id, $tags);
+            $tag_ids = [];
+            foreach ($request['tags'] as $tag_data) {
+                if (is_numeric($tag_data)) {
+                    $tag_ids[] = intval($tag_data);
+                } else {
+                    $tag = get_term_by('name', $tag_data, 'post_tag');
+                    if ($tag) {
+                        $tag_ids[] = intval($tag->term_id);
+                    } else {
+                        $new_tag = wp_insert_term($tag_data, 'post_tag');
+                        if (!is_wp_error($new_tag)) {
+                            $tag_ids[] = intval($new_tag['term_id']);
+                        }
+                    }
+                }
+            }
+            wp_set_post_tags($post_id, $tag_ids);
         }
 
         // Handle featured image from URL
