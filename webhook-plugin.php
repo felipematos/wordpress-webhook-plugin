@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.12
+ * Version: 1.9.13
  */
 
  
@@ -910,7 +910,7 @@ class Webhook_Handler {
              . '<span>Headers</span>'
              . '</h3>'
              . '<div class="collapsible-content" style="display:none;">'
-             . '<pre>' . wp_kses_post($this->make_clickable($this->syntax_highlight(json_encode($headers, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)))) . '</pre>'
+             . '<pre>' . wp_kses_post(json_encode($headers, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) . '</pre>'
              . '</div>'
              . '</div>'
              . '<div class="collapsible-panel">'
@@ -919,7 +919,7 @@ class Webhook_Handler {
              . '<span>Parameters</span>'
              . '</h3>'
              . '<div class="collapsible-content" style="display:none;">'
-             . '<pre>' . wp_kses_post($this->make_clickable($this->syntax_highlight(json_encode($params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)))) . '</pre>'
+             . '<pre>' . wp_kses_post(json_encode($params, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) . '</pre>'
              . '</div>'
              . '</div>'
              . '<div class="collapsible-panel">'
@@ -928,7 +928,7 @@ class Webhook_Handler {
              . '<span>Response</span>'
              . '</h3>'
              . '<div class="collapsible-content" style="display:none;">'
-             . '<pre>' . wp_kses_post($this->make_clickable($this->syntax_highlight(esc_html($log->response)))) . '</pre>'
+             . '<pre>' . wp_kses_post($this->syntax_highlight(esc_html($log->response))) . '</pre>'
              . '</div>'
              . '</div>'
              . '</div>'
