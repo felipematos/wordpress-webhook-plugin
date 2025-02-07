@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.10
+ * Version: 1.9.11
  */
 
  
@@ -737,6 +737,8 @@ class Webhook_Handler {
                 if (is_numeric($category_data)) {
                     $category_ids[] = intval($category_data);
                 } else {
+                    // Unescape category name
+                    $category_data = $this->unescape_string($category_data);
                     $category = get_term_by('name', $category_data, 'category');
                     if ($category) {
                         $category_ids[] = intval($category->term_id);

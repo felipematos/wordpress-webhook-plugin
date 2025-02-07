@@ -182,23 +182,23 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // Render log function
-    function renderLog(log) {
-        const logContainer = document.createElement('div');
-        logContainer.classList.add('log-entry');
+// Render log function
+function renderLog(log) {
+    const logContainer = document.createElement('div');
+    logContainer.classList.add('log-entry');
 
-        // Create collapsible panels
-        const headersPanel = createCollapsiblePanel('Headers', log.headers, true);
-        const paramsPanel = createCollapsiblePanel('Parameters', log.params);
-        const responsePanel = createCollapsiblePanel('Response', log.response);
+    // Create collapsible panels
+    const headersPanel = createCollapsiblePanel('Headers', log.headers, true);
+    const paramsPanel = createCollapsiblePanel('Parameters', log.params);
+    const responsePanel = createCollapsiblePanel('Response', log.response);
 
-        // Append panels in the desired order
-        logContainer.appendChild(headersPanel);
-        logContainer.appendChild(paramsPanel);
-        logContainer.appendChild(responsePanel);
+    // Append panels in the desired order
+    logContainer.appendChild(headersPanel);
+    logContainer.appendChild(paramsPanel);
+    logContainer.appendChild(responsePanel);
 
-        return logContainer;
-    }
+    return logContainer;
+}
 
     // Create collapsible panel function
     function createCollapsiblePanel(title, content, collapsed = false) {
@@ -226,6 +226,27 @@ jQuery(document).ready(function($) {
         
         const panelContent = document.createElement('div');
         panelContent.classList.add('collapsible-content');
+
+        // Pre-treat values in HTML code
+        let encodedContent = document.createElement('pre');
+
+        // Syntax highlighting for JSON and HTML
+        if (typeof content === 'string') {
+            if (isJsonString(content)) {
+                encodedContent.innerHTML = syntaxHighlight(JSON.stringify(JSON.parse(content), null, 2));
+            } else if (isHTMLString(content)) {
+                encodedContent.innerHTML = syntaxHighlight(content);
+            } else {
+                encodedContent.textContent = content;
+            }
+        } else if (typeof content === 'object') {
+            encodedContent.textContent = JSON.stringify(content, null, 2);
+        } else {
+            encodedContent.textContent = String(content);
+        }
+
+        panelContent.appendChild(encodedContent);
+
         panelContent.innerHTML = content.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
         panelContent.style.display = collapsed ? 'none' : 'block';
         
@@ -246,24 +267,85 @@ jQuery(document).ready(function($) {
         return panel;
     }
 
+    // Helper function to check if a string is JSON
+function isJsonString(str) {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
+
+// Helper function to check if a string is HTML
+function isHTMLString(str) {
+    const doc = new DOMParser().parseFromString(str, 'text/html');
+    return doc.body.innerHTML !== '';
+}
+
+// Helper function to apply syntax highlighting
+function syntaxHighlight(json) {
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'key';
+            } else {
+                cls = 'string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'boolean';
+        } else if (/null/.test(match)) {
+            cls = 'null';
+        }
+        return '<span class="'+ cls +'">'+ match +'</span>';
+    });
+}
+
     // CSS to handle collapsible behavior
     const style = document.createElement('style');
     style.textContent = `
-    .log-toggle {
-        display: inline-block;
-        margin-left: 10px;
+    .collapsible-panel {
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .collapsible-title {
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-bottom: 1px solid #ccc;
+        margin: 0;
+        display: flex;
+        align-items: center; /* Vertically center the content */
+        justify-content: space-between; /* Distribute space evenly */
+    }
+
+    .collapsible-content {
+        padding: 10px;
+    }
+
+    .toggle-btn {
         cursor: pointer;
+        margin-right: 5px;
     }
-    .log-summary {
-        cursor: pointer;
+
+    pre {
+        white-space: pre-wrap;       /* Since CSS 2.1 */
+        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+        white-space: -pre-wrap;      /* Opera 4-6 */
+        white-space: -o-pre-wrap;    /* Opera 7 */
+        word-wrap: break-word;       /* Internet Explorer 5.5+ */
     }
-    .collapsible-content.collapsed {
-        display: none;
-    }
-    .collapsible-content.expanded {
-        display: block;
-    }
-`;
+
+    .key { color: orange; }
+    .string { color: green; }
+    .number { color: darkkhaki; }
+    .boolean { color: plum; }
+    .null { color: lightblue; }
+    `;
+
     document.head.appendChild(style);
 
     // Ensure the log-summary is clickable
