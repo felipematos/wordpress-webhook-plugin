@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.17
+ * Version: 1.9.18
  */
 
  
@@ -598,6 +598,41 @@ class Webhook_Handler {
         }
     }
 
+    /**
+     * Unescapes a string by converting HTML entities and special characters back to their original form
+     *
+     * @param string $string The string to unescape
+     * @return string The unescaped string
+     */
+    private function unescape_string($string) {
+        return html_entity_decode(stripslashes($string), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Decodes a JSON field that might be a string or already an array
+     *
+     * @param mixed $field The field to decode
+     * @return array The decoded array or empty array if invalid
+     */
+    private function decode_json_field($field) {
+        if (empty($field)) {
+            return [];
+        }
+
+        if (is_array($field)) {
+            return $field;
+        }
+
+        if (is_string($field)) {
+            $decoded = json_decode($field, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        return [];
+    }
+
     private function format_error_response(WP_Error $error) {
         $error_body = [
             'success' => false,
@@ -731,9 +766,10 @@ class Webhook_Handler {
         }
 
         // Handle categories
-        if (!empty($request['categories']) && is_array($request['categories'])) {
+        $categories = $this->decode_json_field($request['categories']);
+        if (!empty($categories)) {
             $category_ids = [];
-            foreach ($request['categories'] as $category_data) {
+            foreach ($categories as $category_data) {
                 if (is_numeric($category_data)) {
                     $category_ids[] = intval($category_data);
                 } else {
@@ -754,9 +790,10 @@ class Webhook_Handler {
         }
 
         // Handle tags
-        if (!empty($request['tags']) && is_array($request['tags'])) {
+        $tags = $this->decode_json_field($request['tags']);
+        if (!empty($tags)) {
             $tag_ids = [];
-            foreach ($request['tags'] as $tag_data) {
+            foreach ($tags as $tag_data) {
                 if (is_numeric($tag_data)) {
                     $tag_ids[] = intval($tag_data);
                 } else {
