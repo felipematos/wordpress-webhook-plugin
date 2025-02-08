@@ -1,13 +1,30 @@
 jQuery(document).ready(function($) {
+    // Fetch logs on page load
+    fetchLogs();
+
+    // Attach event listener to the "Show Details" button
+    jQuery('#webhookLogsContainer').on('click', '.log-summary', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $card = jQuery(this).closest('.log-card');
+        const $details = $card.find('.log-details');
+
+        $details.slideToggle(200, function() {
+            const isVisible = $details.is(':visible');
+            $card.toggleClass('expanded', isVisible);
+        });
+    });
+
     // Remove any existing event handlers
-    $('#webhookLogsContainer').off('click');
+    jQuery('#webhookLogsContainer').off('click');
 
     // Toggle log details
-    $('#webhookLogsContainer').on('click', '.log-toggle', function(e) {
+    jQuery('#webhookLogsContainer').on('click', '.log-toggle', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
-        const $btn = $(this);
+        const $btn = jQuery(this);
         const $details = $btn.closest('.log-card').find('.log-details');
         const isVisible = $details.is(':visible');
         
@@ -28,11 +45,11 @@ jQuery(document).ready(function($) {
     });
 
     // Toggle collapsible sections
-    $('#webhookLogsContainer').on('click', '.collapsible-title', function(e) {
+    jQuery('#webhookLogsContainer').on('click', '.collapsible-title', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
-        const $title = $(this);
+        const $title = jQuery(this);
         const $content = $title.next('.collapsible-content');
         const $toggleBtn = $title.find('.toggle-btn');
         const isVisible = $content.is(':visible');
@@ -53,16 +70,16 @@ jQuery(document).ready(function($) {
 
     // Fetch logs function
     function fetchLogs(page) {
-        const $container = $('#webhookLogsContainer');
-        const $refreshBtn = $('#refreshLogs');
-        const $spinner = $('<span class="spinner is-active" style="float: none; margin-left: 4px;"></span>');
+        const $container = jQuery('#webhookLogsContainer');
+        const $refreshBtn = jQuery('#refreshLogs');
+        const $spinner = jQuery('<span class="spinner is-active" style="float: none; margin-left: 4px;"></span>');
         
         // Only show spinner if it's a manual refresh
         if (page === 1) {
             $refreshBtn.prop('disabled', true).after($spinner);
         }
         
-        $.post(ajaxurl, {
+        jQuery.post(ajaxurl, {
             action: 'get_logs',
             security: webhookLogs.nonce,
             page: page || 1
@@ -87,15 +104,15 @@ jQuery(document).ready(function($) {
     }
 
     // Refresh logs
-    $('#refreshLogs').click(function(e) {
+    jQuery('#refreshLogs').click(function(e) {
         e.preventDefault();
         fetchLogs(1);
     });
 
     // Clear logs
-    $('#clearLogs').click(function(e) {
+    jQuery('#clearLogs').click(function(e) {
         e.preventDefault();
-        $.post(ajaxurl, {
+        jQuery.post(ajaxurl, {
             action: 'clear_logs',
             security: webhookLogs.nonce
         }).done(function() {
@@ -103,18 +120,15 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Initial fetch
-    fetchLogs(1);
-
     let pollInterval = null;
 
     // Test toggle button
-    $('#testToggle').click(function(e) {
+    jQuery('#testToggle').click(function(e) {
         e.preventDefault();
-        const $btn = $(this);
+        const $btn = jQuery(this);
         const isTesting = $btn.hasClass('active');
         
-        $.post(ajaxurl, {
+        jQuery.post(ajaxurl, {
             action: isTesting ? 'stop_webhook_test' : 'start_webhook_test',
             security: webhookLogs.nonce
         }).done(function(response) {
@@ -124,7 +138,7 @@ jQuery(document).ready(function($) {
                     .toggleClass('button-secondary', response.data.test_active)
                     .text(response.data.test_active ? 'Stop Testing' : 'Start Listening');
                 
-                $('#testStatus').toggle(response.data.test_active);
+                jQuery('#testStatus').toggle(response.data.test_active);
                 
                 if (response.data.test_active) {
                     startPolling();
@@ -145,19 +159,19 @@ jQuery(document).ready(function($) {
         }
 
         pollInterval = setInterval(() => {
-            $.post(ajaxurl, {
+            jQuery.post(ajaxurl, {
                 action: 'get_webhook_test',
                 security: webhookLogs.nonce
             }, function(response) {
                 if (response.success) {
                     if (response.data.results) {
-                        $('#testResults').html('<pre>' + JSON.stringify(response.data.results, null, 2) + '</pre>');
+                        jQuery('#testResults').html('<pre>' + JSON.stringify(response.data.results, null, 2) + '</pre>');
                     }
                     if (!response.data.test_active) {
                         clearInterval(pollInterval);
                         pollInterval = null;
-                        $('#testStatus').hide();
-                        $('#testToggle')
+                        jQuery('#testStatus').hide();
+                        jQuery('#testToggle')
                             .text('Start Listening')
                             .removeClass('button-secondary')
                             .addClass('button-primary')
@@ -169,7 +183,7 @@ jQuery(document).ready(function($) {
     }
 
     // Start polling if test mode is active
-    if ($('#testStatus').is(':visible')) {
+    if (jQuery('#testStatus').is(':visible')) {
         startPolling();
     }
 
@@ -352,11 +366,11 @@ function syntaxHighlight(json) {
     document.head.appendChild(style);
 
     // Ensure the log-summary is clickable
-    $('#webhookLogsContainer').on('click', '.log-summary', function(e) {
+    jQuery('#webhookLogsContainer').on('click', '.log-summary', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
-        const $card = $(this).closest('.log-card');
+        const $card = jQuery(this).closest('.log-card');
         const $details = $card.find('.log-details');
 
         $details.slideToggle(200, function() {

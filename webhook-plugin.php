@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.13
+ * Version: 1.9.16
  */
 
  
@@ -928,7 +928,7 @@ class Webhook_Handler {
              . '<span>Response</span>'
              . '</h3>'
              . '<div class="collapsible-content" style="display:none;">'
-             . '<pre>' . wp_kses_post($this->syntax_highlight(esc_html($log->response))) . '</pre>'
+             . '<pre>' . $this->syntax_highlight($log->response) . '</pre>'
              . '</div>'
              . '</div>'
              . '</div>'
@@ -938,9 +938,27 @@ class Webhook_Handler {
     }
 
     private function syntax_highlight($json) {
-        $json = str_replace('&', '&amp;', htmlspecialchars($json, ENT_NOQUOTES, 'UTF-8'));
-        $json = preg_replace('!(https?://[^\s"]+)!i', '<a href="$1" target="_blank">$1</a>', $json);
-        $json = preg_replace('/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/', '<span style="color: #007bff;">$1</span>', $json);
+        // Decode the JSON string
+        $json = json_decode($json, true);
+
+        // Encode the HTML code inside the JSON string
+        if (is_array($json)) {
+            array_walk_recursive($json, function (&$item, $key) {
+                if (is_string($item)) {
+                    $item = htmlspecialchars($item, ENT_QUOTES, 'UTF-8');
+                }
+            });
+        }
+
+        // Encode the JSON string
+        $json = json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        // Make URLs clickable
+        $json = preg_replace('!(https?://[^\s\"]+)!i', '<a href=\"$1\" target=\"_blank\">$1</a>', $json);
+
+        // Apply syntax highlighting to JSON data
+        $json = preg_replace('/(\"(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\\"])*\"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/', '<span style=\"color: #007bff;\">$1</span>', $json);
+
         return $json;
     }
 
