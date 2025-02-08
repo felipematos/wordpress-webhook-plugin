@@ -3,7 +3,7 @@
  * Plugin Name: Simple Webhook Handler
  * Description: Custom API-Rest webhook endpoint for media upload, post creation and post retrivael.
  * Author: Felipe Matos
- * Version: 1.9.16
+ * Version: 1.9.17
  */
 
  
@@ -943,8 +943,11 @@ class Webhook_Handler {
 
         // Encode the HTML code inside the JSON string
         if (is_array($json)) {
-            array_walk_recursive($json, function (&$item, $key) {
+            array_walk_recursive($json, function (&$item, &$key) {
                 if (is_string($item)) {
+                    // Decode HTML entities
+                    $item = html_entity_decode($item, ENT_QUOTES, 'UTF-8');
+                    // Encode HTML special characters
                     $item = htmlspecialchars($item, ENT_QUOTES, 'UTF-8');
                 }
             });
