@@ -1,4 +1,4 @@
-# Webhook Plugin Documentation
+# Simple Webhook Plugin for Wordpress Documentation
 
 ## Setup
 1. Activate the plugin
