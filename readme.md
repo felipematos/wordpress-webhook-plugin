@@ -228,3 +228,16 @@ The plugin can send webhook notifications when specific WordPress events occur. 
   - `Content-Type: application/json`
   - `User-Agent: WordPress/[version]; [site-url]`
 - Failed webhook attempts are logged and can be viewed in the Logs section
+
+### Creator
+
+Hi! I'm Felipe Matos, AI & technology & entrepreneurship expert, head of 10K Digital Consulting. I made this free plugin for Wordpress automation with love!
+
+Check out my website for more tools, and services.
+
+Contact me:
+
+https://www.felipematos.net
+https://10k.digital
+https://x.com/felipematos
+https://linkedin.com/in/felipematos
