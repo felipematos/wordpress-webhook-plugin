@@ -1,8 +1,11 @@
 # Simple Webhook Plugin for Wordpress Documentation
 
 ## Setup
-1. Activate the plugin
-2. Go to Settings → Webhook to configure:
+1. Compact all plugin files into a .zip file
+2. Go to your Wordpress Plug-ins page and click 'Add Plugin'
+3. Select your zip file to upload and wait for installation
+4. Activate the plugin
+5. Go to Settings → Webhook to configure:
    - Get an authentication key
    - Get endpoint URLs (default: /wp-json/webhook/v1/)
    - Configure webhook triggers for WordPress events
