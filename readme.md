@@ -237,7 +237,8 @@ Check out my website for more tools, and services.
 
 Contact me:
 
-https://www.felipematos.net
-https://10k.digital
-https://x.com/felipematos
-https://linkedin.com/in/felipematos
+- https://www.felipematos.net
+- https://blog.felipematos.net
+- https://10k.digital
+- https://x.com/felipematos
+- https://linkedin.com/in/felipematos
